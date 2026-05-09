@@ -1,0 +1,108 @@
+---
+slug: soundbox
+title: 发声盒
+tagline: 大蘑菇按钮 + 树莓派 + 喇叭，按一下随机播放声音 — 给儿子的第一个 dad-made 玩具
+order: 1
+difficulty: beginner
+estimated_hours: 12
+estimated_weeks: 2
+target_audience: 零基础家长
+phases: 5
+total_nodes: 32
+hero_image: /images/projects/soundbox-hero.jpg
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-09
+---
+
+import { Callout } from '@/components/mdx/Callout'
+import { ProjectStats } from '@/components/mdx/ProjectStats'
+import { HardwareList } from '@/components/mdx/HardwareList'
+import { PhaseTimeline } from '@/components/mdx/PhaseTimeline'
+
+<ProjectStats
+  hours={12}
+  weeks={2}
+  cost="¥150"
+  difficulty="beginner"
+  nodes={32}
+/>
+
+## 这个项目是什么
+
+一个**儿子真的能玩**的电子玩具。
+
+外观：一个塑料盒，盒上有一个 6cm 大的彩色蘑菇按钮。
+行为：按一下，盒子随机播放一段声音——可能是爸爸亲口录的"宝宝最棒"，可能是动物叫，可能是儿歌片段。
+内核：树莓派 4B 跑 Python，监听按钮，触发音频播放。
+
+## 为什么从这里开始
+
+26 个月的孩子最爱"按下去 → 有反馈"的因果游戏。这个项目同时满足：
+
+1. **给爸爸学习**：覆盖了嵌入式入门 80% 的核心知识点（Linux / Python / GPIO / 电学 / 音频 / 自启动）；
+2. **给儿子玩耍**：一周后他能拿到真正喜欢的玩具；
+3. **安全可控**：完整密封后没有暴露元件，符合幼儿安全要求；
+4. **门槛友好**：不需要焊接，不需要示波器，杜邦线直插即可。
+
+<Callout type="info">
+  这是 forge 的"Hello World"项目。完成它你不只是会接一个按钮——你已经掌握了所有后续项目共通的核心技能。
+</Callout>
+
+## 你需要的硬件
+
+<HardwareList items={[
+  { name: 'Raspberry Pi 4B', price: '¥350-450', note: '已有可跳过', required: true },
+  { name: 'microSD 32GB Class 10', price: '¥30', note: 'SanDisk 推荐', required: true },
+  { name: 'USB-C 5V/3A 电源', price: '¥40-60', note: '⚠ 不是 12V，那是给电机用的', required: true },
+  { name: '大蘑菇按钮 (≥6cm)', price: '¥10-20', note: '淘宝搜"街机大按钮"', required: true },
+  { name: 'USB 小喇叭', price: '¥30-50', note: '或 3.5mm 小音箱', required: true },
+  { name: '杜邦线', price: '¥10', note: '母-母 几根即可', required: true },
+  { name: '塑料密封盒', price: '¥15-30', note: '比 Pi 略大即可', required: true },
+  { name: '充电宝或 18650 电池盒', price: '¥40-100', note: '便携版可选', required: false },
+]} />
+
+**总成本估算**：¥150-200（已有 Pi 的话 ¥80-120）
+
+## 5 个阶段
+
+<PhaseTimeline project="soundbox" />
+
+### Phase 1 · 心智模型（~2 小时）
+不连任何线，先建立"嵌入式是什么"的脑内模型。这一阶段结束时你能看着 Pi 4 指出"这根是 GND，那根是 GPIO"。
+
+**节点**：N01 SBC vs MCU / N02 Linux 30 秒 / N03 命令行 5 命令 / N04 电压·地·电流 / N05 GPIO 是什么 / N06 Pi 4 引脚图 / N07 面包板原理
+
+### Phase 2 · 第一次握手（~2 小时）
+让 Mac 和 Pi 通过 SSH 远程握手。从此 Pi 不需要显示器键盘。
+
+**节点**：N08 SD 卡烧录 / N09 SSH 概念 / N10 第一次 SSH / N11 apt update / N12 nano 编辑器
+
+### Phase 3 · 软件能力（~3 小时）
+让 Python 在 Pi 上跑起来，并能控制 GPIO、监听按钮、播放音频。
+
+**节点**：N13 Python 入门 / N14 import & pip / N15 文件路径 / N16 gpiozero 第一次 / N17 Button 类 / N18 事件驱动 / N19 pygame.mixer / N20 random
+
+### Phase 4 · 硬件实操（~3 小时）
+真把按钮接到 Pi，调通"按下打印"——这是软件 + 硬件第一次连通的"啊哈时刻"。
+
+**节点**：N21 上拉电阻 / N22 按钮内部 / N23 杜邦线技巧 / N24 接按钮到 Pi / N25 调试打印
+
+### Phase 5 · 给儿子用（~2 小时 + 永远）
+集成 + 自启动 + 密封 + 给儿子玩。
+
+**节点**：N26 录音 / N27 完整集成 / N28 systemd / N29 喇叭安全 / N30 密封盒 / N31 电池安全 / N32 ship it
+
+## 完成后你会拥有什么
+
+- 一个**儿子真的会玩**的玩具；
+- 嵌入式入门的 32 个原子知识点全部刻进脑里；
+- 一份你自己的 Failure Log（卡过的所有坑）；
+- 一段儿子第一次按下按钮、亲爹的声音从盒子里响起的视频。
+
+最后这一项是这个项目真正的 ROI。
+
+## 准备好了？
+
+下一步：进入 [N01 · SBC / MCU / PC 的区别](/projects/soundbox/nodes/n01)

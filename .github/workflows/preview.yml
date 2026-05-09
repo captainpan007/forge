@@ -1,0 +1,13 @@
+name: Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  preview-comment:
+    name: Comment Vercel Preview
+    runs-on: ubuntu-latest
+    steps:
+      - name: Note
+        run: echo "Vercel auto-deploys preview environments via GitHub integration. See PR comments."

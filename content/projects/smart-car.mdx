@@ -1,0 +1,149 @@
+---
+slug: smart-car
+title: 智能小车
+tagline: 4WD 自动避障 + 第一视角直播 + 手机遥控 — 你的"驾驶舱级"项目
+order: 2
+difficulty: intermediate
+estimated_hours: 30
+estimated_weeks: 5
+target_audience: 完成发声盒后的进阶
+phases: 9
+total_nodes: 47
+new_nodes: 34
+reused_nodes: 13
+hero_image: /images/projects/smart-car-hero.jpg
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-09
+---
+
+import { Callout } from '@/components/mdx/Callout'
+import { ProjectStats } from '@/components/mdx/ProjectStats'
+import { HardwareList } from '@/components/mdx/HardwareList'
+import { PhaseTimeline } from '@/components/mdx/PhaseTimeline'
+import { GraphReuseBadge } from '@/components/mdx/GraphReuseBadge'
+
+<ProjectStats
+  hours={30}
+  weeks={5}
+  cost="¥0 (套件已购)"
+  difficulty="intermediate"
+  nodes={47}
+/>
+
+## 这个项目是什么
+
+一台**真的能跑**的 4WD 自动驾驶小车——
+
+- **会自己避障**：超声波测距 + 状态机决策；
+- **第一视角直播**：手机浏览器实时看到车的"眼睛"；
+- **手机遥控**：浏览器虚拟摇杆，手机当方向盘；
+- **可拓展**：后续能加巡线、语音、对象识别。
+
+外观：双层亚克力底盘 + 4 个橡胶轮 + 树莓派 + 摄像头云台 + 锂电池组。
+**儿子的角色**：观众。这台车**是给你玩的**——他追、他笑、他指挥。等他大一点（4-5 岁），可以让他用手机遥控。
+
+## 为什么这是发声盒之后的下一站
+
+<GraphReuseBadge reused={13} new_={34} from="soundbox" />
+
+发声盒已经教会你 Linux / Python / GPIO / 远程登录这些**地基**。小车在这地基上加：
+
+- **电机控制**（H 桥、PWM、差速转向）
+- **传感器融合**（多个超声波、状态机决策）
+- **视频流**（CSI 摄像头、HTTP MJPEG、低延迟传输）
+- **Web 后端**（Flask、WebSocket、移动端响应式）
+- **机械组装**（4 个电机 + 底盘 + 走线 + 电池布局）
+
+这是嵌入式 + 软件 + 机械 + 网络的**第一个完整跨域项目**。完成它你就跨过了"会接 LED"和"能做产品"的鸿沟。
+
+<Callout type="info" icon="🔁">
+  **图谱复用的威力**：如果从零学，小车需要 ~50 节课。但你已经在发声盒里完成了 13 个共通节点（Linux、Python、GPIO、SSH 等）——所以你**只需学 34 个新节点**。这就是 forge 知识图谱真正的价值。
+</Callout>
+
+## 你需要的硬件
+
+你已经有的（创乐博 4WD 树莓派智能小车套件）：
+
+<HardwareList items={[
+  { name: 'Raspberry Pi 4B', price: '已有', note: '从发声盒迁移过来', required: true },
+  { name: '4WD 亚克力底盘', price: '已有', note: '双层设计', required: true },
+  { name: '4 个 TT 减速电机 + 橡胶轮', price: '已有', note: '已预接线', required: true },
+  { name: 'L298N 驱动板（红色那块）', price: '已有', note: '双 H 桥能控 4 个电机', required: true },
+  { name: 'HC-SR04 超声波 ×2-3', price: '已有', note: '前向 + 侧向', required: true },
+  { name: 'Pi CSI 摄像头', price: '已有', note: '排线小心', required: true },
+  { name: 'SG90 舵机', price: '已有', note: '摄像头云台', required: true },
+  { name: '7.4V 锂电池组', price: '已有', note: '蓝色那个', required: true },
+  { name: '12V DC 电源砖', price: '已有', note: '调试用，不要给 Pi 供电！', required: true },
+  { name: '杜邦线、螺丝、螺丝刀', price: '已有', note: '套件全有', required: true },
+]} />
+
+**追加需要购买**：
+
+<HardwareList items={[
+  { name: 'Pi USB-C 5V/3A 电源', price: '¥40-60', note: '⚠ 调试期间用，跟 12V 砖严格分开', required: true },
+  { name: 'Pi 用充电宝（2A 输出）', price: '¥50-80', note: '让小车真正"无线"跑', required: false },
+  { name: '简易万用表', price: '¥40', note: '通电前检查必备', required: true },
+  { name: 'AA 电池盒（4 节，可选）', price: '¥10', note: '舵机独立供电更稳', required: false },
+]} />
+
+**追加成本估算**：¥80-180
+
+## 5 周时间表（每周 6-8 小时）
+
+<PhaseTimeline project="smart-car" />
+
+### Phase 1 · 共通基础（已完成）
+你做发声盒时已经过完这 13 节——**直接从 Phase 2 开始**。
+
+### Phase 2 · 电机原理（~1 小时）
+不接线，先理解：直流电机怎么转、H 桥怎么改方向、PWM 怎么变速、L298N 是怎么把这一切打包成一块板。
+
+**节点**：N33 直流电机 / N34 H 桥 / N35 PWM 速度 / N36 L298N / N37 电源分离
+
+### Phase 3 · 单电机调通（~2 小时）
+**只接一个**电机到 L298N → 控制脚到 Pi → Python 让它正反转。**这一步成功 = 小车 80% 解锁**。
+
+**节点**：N38 接 1 电机 / N39 接 L298N 到 Pi / N40 Motor 类 / N41 单电机测试
+
+### Phase 4 · 4 电机协同（~3 小时）
+理解差速转向（左轮快右轮慢 → 车右转）→ 接 4 电机 → 写"前进/后退/左转/右转/停"的程序。
+
+**节点**：N42 差速转向 / N43 接 4 电机 / N44 4WD 控制程序
+
+### Phase 5 · 底盘组装（~2 小时）
+**等所有零件验证可用了再装车**——这是我反复强调的"先软后硬"原则。
+
+**节点**：N45 螺丝工具 / N46 装电机 / N47 装 Pi 和电池 / N48 通电不烧检查
+
+### Phase 6 · 超声波避障（~3 小时）
+**啊哈时刻**：把车放地上，按一下，它自己**满屋子瞎跑、撞不到东西**。儿子会以为它活了。
+
+**节点**：N49 超声波原理 / N50 HC-SR04 接线 / N51 多传感器布置 / N52 避障状态机
+
+### Phase 7 · 摄像头（~3 小时）
+CSI 摄像头比 USB 难接（排线方向、libcamera 配置），但成功后你能在 Mac 浏览器看到车的视角。
+
+**节点**：N53 摄像头类型 / N54 libcamera / N55 视频流 / N56 舵机云台
+
+### Phase 8 · 远程控制（~5 小时）
+最有挑战的一段：写一个 Flask 后端 + 网页虚拟摇杆 + 视频流嵌入。完成后**手机就是你的方向盘**。
+
+**节点**：N57 IP 与端口 / N58 Flask / N59 摇杆 / N60 流 + 控制合并 / N61 移动端响应式
+
+### Phase 9 · 集成与进阶（~3-10 小时）
+模式切换、电池监测、自启动。可选拓展：巡线、语音控制。
+
+**节点**：N62 模式切换 / N63 电池监测 / N64 systemd / N65 巡线 (可选) / N66 语音 (可选)
+
+## 完成后你会拥有什么
+
+- 一台**真能跑**的 4WD 自动驾驶小车，第一视角 + 手机遥控；
+- 嵌入式 + 软件 + 机械 + 网络的第一个跨域项目经验；
+- 一份会被未来 forge 用户反复参考的 **Failure Log**；
+- 一段儿子追着小车在客厅笑得前仰后合的视频——**这个项目真正的 ROI**。
+
+## 准备好了？
+
+下一步：进入 [N33 · 直流电机原理](/projects/smart-car/nodes/n33)

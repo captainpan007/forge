@@ -1,0 +1,2 @@
+# drizzle-kit generate 会把迁移文件写到这里
+# 第一次跑：pnpm db:push

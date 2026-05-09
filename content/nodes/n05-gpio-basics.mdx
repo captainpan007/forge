@@ -1,0 +1,250 @@
+---
+id: n05
+slug: gpio-basics
+title: GPIO 是什么
+phase: 1
+phase_name: 心智模型
+project: soundbox
+order: 5
+duration: 10
+difficulty: 2
+depends_on: [n01, n04]
+unlocks: [n06, n16, n17, n21]
+tags: [hardware, electronics, fundamentals]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-09
+---
+
+import { Callout } from '@/components/mdx/Callout'
+import { ConceptDiagram } from '@/components/mdx/ConceptDiagram'
+import { TryThis } from '@/components/mdx/TryThis'
+import { FeynmanPrompt } from '@/components/mdx/FeynmanPrompt'
+import { VideoEmbed } from '@/components/mdx/VideoEmbed'
+import { Analogy } from '@/components/mdx/Analogy'
+
+{/* ═══════════════════════════════════════════════════ */}
+{/*  WHY · 这一节为什么存在                                  */}
+{/* ═══════════════════════════════════════════════════ */}
+
+## Why · 你为什么要学这一节
+
+你的发声盒需要让 Pi 知道**儿子刚刚按了按钮**。
+
+Pi 是台电脑，CPU、内存、屏幕你都熟。但电脑要跟**外面的世界**说话——读一个按钮、点亮一个 LED、转一个电机——靠的是**那 40 根从主板上伸出来的金属针脚**。其中 26 根叫 **GPIO**。
+
+如果不懂 GPIO 是什么，你就**永远没办法把按钮接到 Pi 上**。这一节是后面所有硬件节点（N06、N16、N17、N21、N24）的入口。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 看着 Pi 上的 40 根针脚，指出哪些是 GPIO、它们能做什么、为什么需要它们。
+</Callout>
+
+{/* ═══════════════════════════════════════════════════ */}
+{/*  WHAT · 核心内容                                        */}
+{/* ═══════════════════════════════════════════════════ */}
+
+## What · GPIO 到底是什么
+
+### 一句话定义
+
+**GPIO = General Purpose Input / Output（通用输入输出）。**
+
+就是 Pi 上的几十根**可以由你软件控制的金属针脚**——每一根你都能让它输出"高电平"（3.3V）或"低电平"（0V），或者反过来读它现在被外部接到了 3.3V 还是 0V。
+
+### 用人话翻译
+
+把每一根 GPIO 想象成 Pi 伸出来的一根**手指**。每根手指有两种工作模式：
+
+<Analogy
+  pairs={[
+    { tech: 'Output 模式', life: '手指主动按按钮 — 给外面的电路一个信号' },
+    { tech: 'Input 模式', life: '手指轻轻搭在按钮上 — 等外面的电路给它一个信号' },
+  ]}
+/>
+
+**关键洞察**：同一根 GPIO 针脚，**软件一行代码就能切换**它当前是 Output 还是 Input。这就是为什么它叫 "General Purpose"——通用——同一根线啥都能干。
+
+### 高电平 / 低电平 = 数字 0 和 1
+
+GPIO 是**数字** IO，不是模拟。每一根针脚在任意时刻只有两种状态：
+
+| 状态 | 电压 | 数字 | 形象 |
+|---|---|---|---|
+| 高电平 (HIGH) | 3.3V | 1 | "开" / 有信号 |
+| 低电平 (LOW) | 0V | 0 | "关" / 没信号 |
+
+<Callout type="warning" icon="⚠">
+  **重要**：Pi 4 的 GPIO 工作电压是 **3.3V**，**不是 5V**。你要是接错了把 5V 直接灌进 GPIO，**这根针脚甚至整片 Pi 可能会烧坏**。这是为什么你要看 N06 的引脚图——分清哪些是 5V 输出、哪些是 3.3V 输出、哪些是 GPIO。
+</Callout>
+
+### 为什么有的针脚是 GPIO，有的不是
+
+Pi 4 上一共 40 根针脚，但**只有 26 根**是 GPIO。其他的：
+
+- 2 根是 **5V** 电源输出（红线）
+- 2 根是 **3.3V** 电源输出（橙线）
+- 8 根是 **GND**（地，黑线）
+- 2 根预留给 **EEPROM**（你这辈子大概不会用）
+
+所以你拿到 Pi 第一件事不是接线，是**看引脚图**——这是 N06 的内容。
+
+### Output 模式：让 Pi 给外界一个信号
+
+最常见用法：**点亮一个 LED**。
+
+```python
+# 这是 N16 的内容，先看个气氛
+from gpiozero import LED
+
+led = LED(17)   # 用 GPIO 17 这一根针脚，作为 Output
+led.on()        # 让它输出 3.3V → LED 亮
+led.off()       # 让它输出 0V    → LED 灭
+```
+
+发生了什么：
+1. Python 代码告诉 Pi："请把 GPIO 17 这根针脚切成 Output 模式"。
+2. 你调用 `.on()` → Pi 把 GPIO 17 拉到 3.3V → 电流通过 LED → LED 亮起来。
+3. 你调用 `.off()` → Pi 把 GPIO 17 拉到 0V → 没电流 → LED 灭。
+
+### Input 模式：让 Pi 听外界的信号
+
+发声盒最关键的用法：**读按钮**。
+
+```python
+# 这是 N17 的内容，先看个气氛
+from gpiozero import Button
+
+button = Button(17)              # 用 GPIO 17 作为 Input
+if button.is_pressed:            # 这一刻它是高电平还是低电平？
+    print("按下了！")
+```
+
+发生了什么：
+1. Python 代码告诉 Pi："请把 GPIO 17 切成 Input 模式"。
+2. 你调用 `button.is_pressed` → Pi 去**读** GPIO 17 当前的电压。
+3. 如果按钮被按下，电路接通，GPIO 17 被拉到一个固定电压（3.3V 或 0V，取决于电路怎么设计——这是 N21 的内容）。
+4. Pi 检测到这个变化 → 你的代码继续执行。
+
+<Callout type="info" icon="🧠">
+  现在你已经看到了发声盒的两个核心动作的本质：**Pi 通过 GPIO 监听按钮 + 通过音频接口播放声音**。GPIO 是这一切的入口。
+</Callout>
+
+### 一张图看懂
+
+<ConceptDiagram
+  src="/diagrams/gpio-pi-finger.svg"
+  alt="Pi 的 GPIO 像手指：可以触摸（Input）也可以推（Output）"
+  caption="GPIO 的两种模式：Pi 可以主动'推'电压出去（Output）或者'感受'外面的电压（Input）"
+/>
+
+### 视频补充（可选）
+
+<VideoEmbed
+  src="https://www.youtube.com/embed/0r0_1L_ZsAQ"
+  title="What are GPIO pins? (3 minutes)"
+  duration="3:12"
+  language="en"
+  notes="英文 3 分钟视频，讲解非常直观；如果只看一个补充材料，看这个就够。"
+/>
+
+{/* ═══════════════════════════════════════════════════ */}
+{/*  TRY · 动手验证                                         */}
+{/* ═══════════════════════════════════════════════════ */}
+
+## Try · 动手验证你真懂了
+
+这一节不需要硬件——纯认知验证。完成下面 3 题才能进 Feynman。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'Pi 4 上一共有多少根针脚？其中多少根是 GPIO？',
+      options: [
+        '40 根全部都是 GPIO',
+        '40 根总数，26 根是 GPIO',
+        '26 根总数，全部都是 GPIO',
+        '20 根总数，10 根是 GPIO',
+      ],
+      correct: 1,
+      explain: 'Pi 4 总共 40 根针脚，但只有 26 根能由你软件控制。剩下的是 5V/3.3V 电源、GND 和 EEPROM 专用针脚。',
+    },
+    {
+      q: '一根 GPIO 针脚配置成 Output、调用 .on()，它的电压是多少？',
+      options: ['5V', '3.3V', '12V', '随机'],
+      correct: 1,
+      explain: 'Pi 4 的 GPIO 高电平是 3.3V。注意不是 5V — 接错可能烧 Pi。',
+    },
+    {
+      q: '同一根 GPIO 17 能不能在程序里一会儿当 Output（推电压）一会儿当 Input（读电压）？',
+      options: [
+        '不能，针脚出厂就决定了',
+        '能，软件一行代码就能切换',
+        '只有部分高级 GPIO 才能',
+        'Pi 4 不支持，需要 Pi 5',
+      ],
+      correct: 1,
+      explain: '这就是 GPIO 中 "General Purpose" 的精髓 — 同一根线，软件随时切换 Input/Output 模式。',
+    },
+  ]}
+/>
+
+{/* ═══════════════════════════════════════════════════ */}
+{/*  FEYNMAN · 教给你儿子                                    */}
+{/* ═══════════════════════════════════════════════════ */}
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  这一关必须通过才能解锁下一节 N06。**没真懂 → 后面只会更卡。**
+</Callout>
+
+<FeynmanPrompt
+  prompt="请用最简单的话，解释给一个 3 岁孩子听：什么是 GPIO？为什么 Pi 需要它？（30-60 秒，可录音可打字）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（手指 / 开关 / 嘴巴 等）',
+    '✓ 说清了"两种用法"（输入 vs 输出）',
+    '✗ 没用未解释的术语（"高电平"、"3.3V"、"针脚"等若用了必须解释）',
+    '✓ 解释了"为什么需要它"，不只是"它是什么"',
+  ]}
+  followUps={[
+    {
+      question: '那为什么有时候是 3.3V 有时候是 0V，不能都一样吗？',
+      hint: '考点：理解二值状态 — Pi 怎么区分"按了"和"没按"',
+    },
+    {
+      question: '那 Pi 怎么知道我按了按钮还是没按？是它有眼睛吗？',
+      hint: '考点：理解 Input 模式 — Pi 是"感受"电压，不是"看见"动作',
+    },
+    {
+      question: '数字 17 是什么意思？为什么是 17 不是 1 啊？',
+      hint: '考点：理解 GPIO 编号 — 这是引脚的"门牌号"，N06 会详细讲',
+    },
+  ]}
+/>
+
+{/* ═══════════════════════════════════════════════════ */}
+{/*  完成后                                                  */}
+{/* ═══════════════════════════════════════════════════ */}
+
+## 完成后
+
+✅ Feynman 通过 → 自动解锁 **N06 · Pi 4 引脚图阅读**——那一节我们终于把这 40 根针脚一根一根认清。
+
+### 你现在脑子里应该有的画面
+
+- Pi 是台小电脑，从主板伸出 40 根针脚；
+- 26 根可以由你 Python 代码控制，叫 GPIO；
+- 每根 GPIO 有两种模式：Output（推电压）和 Input（读电压）；
+- 高电平 = 3.3V = 1，低电平 = 0V = 0；
+- 你的发声盒 = Pi 用一根 GPIO 当 Input 监听按钮 + 用音频接口播放声音。
+
+### 如果某一段还模糊
+
+立即点右栏的 [JARVIS] 问它："关于 XXX 你能再用别的类比解释一遍吗？"它会换说法直到你懂。
+
+---
+
+**JARVIS Note**:
+> *"Sir, GPIO 是嵌入式工程师的母语。下一节 N06 我们会拿到 Pi 4 的完整引脚图，把这 40 根针脚的身份全部认清——这是你接任何线之前必须的一步。"*

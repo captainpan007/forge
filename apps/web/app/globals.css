@@ -1,0 +1,124 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ═══════════════════════════════════════════════════
+   forge.dev · 全局样式
+   设计参照：Linear / Vercel Dashboard
+   ═══════════════════════════════════════════════════ */
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+
+  body {
+    @apply bg-forge-bg text-forge-fg antialiased;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* 滚动条 — Linear 风格细且克制 */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-forge-border rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-forge-fg-subtle;
+  }
+
+  /* 选中文字 */
+  ::selection {
+    background: rgba(59, 130, 246, 0.25);
+  }
+
+  /* 焦点样式 — 统一蓝色描边 */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-forge-accent ring-offset-2 ring-offset-forge-bg;
+  }
+}
+
+@layer components {
+  /* 通用容器 */
+  .forge-container {
+    @apply mx-auto w-full max-w-7xl px-6;
+  }
+
+  /* 卡片基础样式 */
+  .forge-card {
+    @apply rounded-md border border-forge-border bg-forge-bg-elevated;
+    @apply hover:border-forge-fg-subtle/40 transition-colors;
+  }
+
+  /* 内嵌代码 */
+  code:not(pre code) {
+    @apply rounded px-1.5 py-0.5 font-mono text-[0.85em];
+    @apply bg-forge-bg-elevated text-forge-accent border border-forge-border-subtle;
+  }
+
+  /* 代码块容器 */
+  pre {
+    @apply rounded-md border border-forge-border bg-forge-bg-elevated overflow-x-auto p-4 text-sm;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* 链接样式 */
+  .forge-link {
+    @apply text-forge-accent hover:text-forge-accent-hover underline underline-offset-2 transition-colors;
+  }
+
+  /* MDX 内容区 — 默认排版 */
+  .prose-forge {
+    @apply text-forge-fg max-w-none;
+  }
+  .prose-forge h1 {
+    @apply text-3xl font-semibold mt-8 mb-4;
+  }
+  .prose-forge h2 {
+    @apply text-2xl font-semibold mt-8 mb-3 pb-2 border-b border-forge-border;
+  }
+  .prose-forge h3 {
+    @apply text-xl font-semibold mt-6 mb-2;
+  }
+  .prose-forge p {
+    @apply text-forge-fg-muted leading-relaxed my-4;
+  }
+  .prose-forge ul, .prose-forge ol {
+    @apply text-forge-fg-muted pl-6 my-4 space-y-2;
+  }
+  .prose-forge ul {
+    @apply list-disc;
+  }
+  .prose-forge ol {
+    @apply list-decimal;
+  }
+  .prose-forge a {
+    @apply forge-link;
+  }
+  .prose-forge strong {
+    @apply text-forge-fg font-semibold;
+  }
+  .prose-forge blockquote {
+    @apply border-l-2 border-forge-accent pl-4 italic text-forge-fg-muted my-6;
+  }
+  .prose-forge table {
+    @apply w-full my-6 text-sm;
+  }
+  .prose-forge th, .prose-forge td {
+    @apply border border-forge-border px-3 py-2 text-left;
+  }
+  .prose-forge th {
+    @apply bg-forge-bg-elevated font-semibold;
+  }
+}

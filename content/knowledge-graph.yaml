@@ -1,0 +1,1043 @@
+# forge.dev · Knowledge Graph
+#
+# 这是 forge 的核心数据结构。每个项目的所有原子知识节点 + 依赖关系全部在这里定义。
+#
+# Schema:
+#   projects.<slug>:
+#     title, tagline, learning_path (节点 ID 的有序列表)
+#   nodes[]:
+#     id:          唯一 ID (n01...nNN) — 全局唯一
+#     slug:        URL 友好别名 — 全局唯一
+#     title:       中文标题
+#     phase:       阶段编号（项目内部 scope）
+#     phase_name:  阶段中文名
+#     project:     primary project (Why 节的语境基于这个)
+#     order:       项目内顺序
+#     duration:    预计分钟数 (-1 = 无穷)
+#     difficulty:  1-5
+#     depends_on:  前置节点 ID 列表
+#     unlocks:     完成后解锁的节点 ID 列表（反向冗余）
+#     tags:        标签
+#
+# 一致性由 scripts/validate-graph.ts 检查。
+
+# ═══════════════════════════════════════════════════
+# Projects
+# ═══════════════════════════════════════════════════
+
+projects:
+  soundbox:
+    title: 发声盒
+    tagline: 大蘑菇按钮 + 树莓派 + 喇叭，按一下随机播放声音 — 给儿子的第一个 dad-made 玩具
+    target_audience: 39 岁零基础家长
+    estimated_total_hours: 12
+    estimated_calendar_weeks: 2
+    hardware_required:
+      - Raspberry Pi 4B
+      - microSD 32GB
+      - USB-C 5V/3A 电源
+      - 大蘑菇按钮 (≥6cm)
+      - USB 小喇叭或 3.5mm 音箱
+      - 杜邦线
+      - 塑料密封盒
+      - (可选) 18650 电池盒供电
+    learning_path:
+      # Phase 1: 心智模型
+      - n01
+      - n02
+      - n03
+      - n04
+      - n05
+      - n06
+      - n07
+      # Phase 2: 第一次握手
+      - n08
+      - n09
+      - n10
+      - n11
+      - n12
+      # Phase 3: 软件能力
+      - n13
+      - n14
+      - n15
+      - n16
+      - n17
+      - n18
+      - n19
+      - n20
+      # Phase 4: 硬件实操
+      - n21
+      - n22
+      - n23
+      - n24
+      - n25
+      # Phase 5: 给儿子用
+      - n26
+      - n27
+      - n28
+      - n29
+      - n30
+      - n31
+      - n32
+
+  smart-car:
+    title: 智能小车
+    tagline: 4WD 自动避障 + 第一视角直播 + 手机遥控 — 你的"驾驶舱级"项目
+    target_audience: 完成发声盒后的进阶
+    estimated_total_hours: 30
+    estimated_calendar_weeks: 5
+    hardware_required:
+      - Raspberry Pi 4B
+      - 4WD 亚克力底盘 + 4 个 TT 减速电机
+      - L298N 双 H 桥驱动板（或类似）
+      - 2-3 个 HC-SR04 超声波模块
+      - Pi CSI 摄像头模块
+      - SG90 舵机（摄像头云台）
+      - 7.4V/12V 锂电池组 + DC 电源
+      - 杜邦线、螺丝、螺丝刀
+      - (套件已含以上全部 — 创乐博 4WD 树莓派智能小车)
+    # learning_path 复用了 13 个 soundbox 共通基础 + 34 个小车专属新节点
+    # 这是 forge 知识图谱真正的威力 — 小车不用从零学一遍
+    learning_path:
+      # Phase 1: 共通基础（复用自 soundbox）
+      - n02  # Linux 30s
+      - n03  # 命令行5命令
+      - n04  # 电压·地·电流
+      - n05  # GPIO 是什么
+      - n06  # Pi 4 引脚图
+      - n08  # SD 卡烧录
+      - n09  # SSH 概念
+      - n10  # 第一次 SSH
+      - n11  # apt update
+      - n13  # Python 30 行
+      - n14  # import & pip
+      - n15  # 文件路径
+      - n16  # gpiozero 第一次
+      # Phase 2: 电机原理
+      - n33
+      - n34
+      - n35
+      - n36
+      - n37
+      # Phase 3: 单电机调通
+      - n38
+      - n39
+      - n40
+      - n41
+      # Phase 4: 4 电机协同
+      - n42
+      - n43
+      - n44
+      # Phase 5: 底盘组装
+      - n45
+      - n46
+      - n47
+      - n48
+      # Phase 6: 超声波避障
+      - n49
+      - n50
+      - n51
+      - n52
+      # Phase 7: 摄像头
+      - n53
+      - n54
+      - n55
+      - n56
+      # Phase 8: 远程控制
+      - n57
+      - n58
+      - n59
+      - n60
+      - n61
+      # Phase 9: 集成与进阶
+      - n62
+      - n63
+      - n64
+      - n65  # 可选
+      - n66  # 可选
+
+# ═══════════════════════════════════════════════════
+# Nodes
+# ═══════════════════════════════════════════════════
+
+nodes:
+
+  # ╔═══════════════════════════════════════════════╗
+  # ║  SOUNDBOX 项目节点 (n01-n32)                   ║
+  # ╚═══════════════════════════════════════════════╝
+
+  # ============ Phase 1: 心智模型 ============
+  - id: n01
+    slug: sbc-vs-mcu
+    title: SBC / MCU / PC 的区别
+    phase: 1
+    phase_name: 心智模型
+    project: soundbox
+    order: 1
+    duration: 5
+    difficulty: 1
+    depends_on: []
+    unlocks: [n05]
+    tags: [fundamentals, hardware]
+
+  - id: n02
+    slug: linux-30s
+    title: Linux 30 秒认知
+    phase: 1
+    phase_name: 心智模型
+    project: soundbox
+    order: 2
+    duration: 5
+    difficulty: 1
+    depends_on: []
+    unlocks: [n03, n08, n09]
+    tags: [fundamentals, linux, shared]
+
+  - id: n03
+    slug: cli-five-commands
+    title: 命令行五个命令
+    phase: 1
+    phase_name: 心智模型
+    project: soundbox
+    order: 3
+    duration: 15
+    difficulty: 1
+    depends_on: [n02]
+    unlocks: [n09, n12, n15]
+    tags: [linux, cli, fundamentals, shared]
+
+  - id: n04
+    slug: voltage-ground-current
+    title: 电压·地·电流 60 秒
+    phase: 1
+    phase_name: 心智模型
+    project: soundbox
+    order: 4
+    duration: 10
+    difficulty: 1
+    depends_on: []
+    unlocks: [n05, n21, n22, n33]
+    tags: [electronics, fundamentals, shared]
+
+  - id: n05
+    slug: gpio-basics
+    title: GPIO 是什么
+    phase: 1
+    phase_name: 心智模型
+    project: soundbox
+    order: 5
+    duration: 10
+    difficulty: 2
+    depends_on: [n01, n04]
+    unlocks: [n06, n16, n17, n21]
+    tags: [hardware, electronics, fundamentals, shared]
+
+  - id: n06
+    slug: pi4-pinout
+    title: Pi 4 引脚图阅读
+    phase: 1
+    phase_name: 心智模型
+    project: soundbox
+    order: 6
+    duration: 15
+    difficulty: 2
+    depends_on: [n05]
+    unlocks: [n16, n17, n24, n39, n50, n54]
+    tags: [hardware, raspberry-pi, shared]
+
+  - id: n07
+    slug: breadboard
+    title: 面包板工作原理
+    phase: 1
+    phase_name: 心智模型
+    project: soundbox
+    order: 7
+    duration: 10
+    difficulty: 1
+    depends_on: [n04]
+    unlocks: [n23, n24]
+    tags: [electronics, hardware]
+
+  # ============ Phase 2: 第一次握手 ============
+  - id: n08
+    slug: sd-card-imager
+    title: SD 卡烧录系统
+    phase: 2
+    phase_name: 第一次握手
+    project: soundbox
+    order: 8
+    duration: 20
+    difficulty: 2
+    depends_on: [n02]
+    unlocks: [n10]
+    tags: [raspberry-pi, setup, shared]
+
+  - id: n09
+    slug: ssh-concept
+    title: SSH 是什么
+    phase: 2
+    phase_name: 第一次握手
+    project: soundbox
+    order: 9
+    duration: 10
+    difficulty: 2
+    depends_on: [n02, n03]
+    unlocks: [n10]
+    tags: [linux, networking, fundamentals, shared]
+
+  - id: n10
+    slug: first-ssh
+    title: 第一次 SSH 进 Pi
+    phase: 2
+    phase_name: 第一次握手
+    project: soundbox
+    order: 10
+    duration: 20
+    difficulty: 2
+    depends_on: [n08, n09]
+    unlocks: [n11, n12]
+    tags: [raspberry-pi, setup, milestone, shared]
+
+  - id: n11
+    slug: apt-update
+    title: apt update / upgrade
+    phase: 2
+    phase_name: 第一次握手
+    project: soundbox
+    order: 11
+    duration: 10
+    difficulty: 1
+    depends_on: [n10]
+    unlocks: [n14]
+    tags: [linux, package-management, shared]
+
+  - id: n12
+    slug: nano-editor
+    title: nano 编辑器
+    phase: 2
+    phase_name: 第一次握手
+    project: soundbox
+    order: 12
+    duration: 10
+    difficulty: 1
+    depends_on: [n03, n10]
+    unlocks: [n16]
+    tags: [linux, cli]
+
+  # ============ Phase 3: 软件能力 ============
+  - id: n13
+    slug: python-30-lines
+    title: Python 30 行入门
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 13
+    duration: 30
+    difficulty: 2
+    depends_on: []
+    unlocks: [n14, n16, n20]
+    tags: [python, programming, shared]
+
+  - id: n14
+    slug: imports-and-pip
+    title: import 和 pip
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 14
+    duration: 10
+    difficulty: 2
+    depends_on: [n11, n13]
+    unlocks: [n16, n19, n40, n58]
+    tags: [python, shared]
+
+  - id: n15
+    slug: file-paths
+    title: 文件路径实操
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 15
+    duration: 10
+    difficulty: 1
+    depends_on: [n03]
+    unlocks: [n19, n26]
+    tags: [linux, fundamentals, shared]
+
+  - id: n16
+    slug: gpiozero-first
+    title: gpiozero 第一次
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 16
+    duration: 25
+    difficulty: 3
+    depends_on: [n05, n12, n13, n14]
+    unlocks: [n17, n40]
+    tags: [python, gpio, milestone, shared]
+
+  - id: n17
+    slug: gpiozero-button
+    title: gpiozero 的 Button 类
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 17
+    duration: 15
+    difficulty: 3
+    depends_on: [n16]
+    unlocks: [n18]
+    tags: [python, gpio, button]
+
+  - id: n18
+    slug: event-driven
+    title: 事件驱动编程
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 18
+    duration: 20
+    difficulty: 3
+    depends_on: [n17]
+    unlocks: [n25, n27]
+    tags: [python, programming-paradigm]
+
+  - id: n19
+    slug: pygame-mixer
+    title: pygame.mixer 播音频
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 19
+    duration: 25
+    difficulty: 3
+    depends_on: [n14, n15]
+    unlocks: [n27]
+    tags: [python, audio]
+
+  - id: n20
+    slug: random-module
+    title: random 模块
+    phase: 3
+    phase_name: 软件能力
+    project: soundbox
+    order: 20
+    duration: 10
+    difficulty: 1
+    depends_on: [n13]
+    unlocks: [n27]
+    tags: [python]
+
+  # ============ Phase 4: 硬件实操 ============
+  - id: n21
+    slug: pull-up-pull-down
+    title: 上拉/下拉电阻
+    phase: 4
+    phase_name: 硬件实操
+    project: soundbox
+    order: 21
+    duration: 15
+    difficulty: 3
+    depends_on: [n04, n05]
+    unlocks: [n24]
+    tags: [electronics, gpio]
+
+  - id: n22
+    slug: button-internals
+    title: 大按钮的内部结构
+    phase: 4
+    phase_name: 硬件实操
+    project: soundbox
+    order: 22
+    duration: 10
+    difficulty: 1
+    depends_on: [n04]
+    unlocks: [n24]
+    tags: [electronics, hardware]
+
+  - id: n23
+    slug: jumper-wire-tips
+    title: 杜邦线连接技巧
+    phase: 4
+    phase_name: 硬件实操
+    project: soundbox
+    order: 23
+    duration: 10
+    difficulty: 1
+    depends_on: [n07]
+    unlocks: [n24, n38, n50]
+    tags: [hardware, practical, shared]
+
+  - id: n24
+    slug: wire-button-to-pi
+    title: 接按钮到 Pi（实操）
+    phase: 4
+    phase_name: 硬件实操
+    project: soundbox
+    order: 24
+    duration: 30
+    difficulty: 3
+    depends_on: [n06, n17, n21, n22, n23]
+    unlocks: [n25]
+    tags: [hardware, milestone]
+
+  - id: n25
+    slug: button-print-test
+    title: 调试 - 按一下打印
+    phase: 4
+    phase_name: 硬件实操
+    project: soundbox
+    order: 25
+    duration: 20
+    difficulty: 2
+    depends_on: [n18, n24]
+    unlocks: [n27]
+    tags: [debugging, milestone]
+
+  # ============ Phase 5: 给儿子用 ============
+  - id: n26
+    slug: record-audio
+    title: 录音 / 收集音频
+    phase: 5
+    phase_name: 给儿子用
+    project: soundbox
+    order: 26
+    duration: 30
+    difficulty: 1
+    depends_on: [n15]
+    unlocks: [n27]
+    tags: [audio, content]
+
+  - id: n27
+    slug: full-integration
+    title: 完整集成
+    phase: 5
+    phase_name: 给儿子用
+    project: soundbox
+    order: 27
+    duration: 30
+    difficulty: 3
+    depends_on: [n18, n19, n20, n25, n26]
+    unlocks: [n28]
+    tags: [integration, milestone]
+
+  - id: n28
+    slug: systemd-autostart
+    title: systemd 自启动
+    phase: 5
+    phase_name: 给儿子用
+    project: soundbox
+    order: 28
+    duration: 30
+    difficulty: 3
+    depends_on: [n27]
+    unlocks: [n29, n64]
+    tags: [linux, systemd, shared]
+
+  - id: n29
+    slug: speaker-volume-safety
+    title: 喇叭选型与音量限制
+    phase: 5
+    phase_name: 给儿子用
+    project: soundbox
+    order: 29
+    duration: 20
+    difficulty: 1
+    depends_on: []
+    unlocks: [n30]
+    tags: [audio, child-safety]
+
+  - id: n30
+    slug: enclosure-assembly
+    title: 密封盒打孔安装
+    phase: 5
+    phase_name: 给儿子用
+    project: soundbox
+    order: 30
+    duration: 60
+    difficulty: 2
+    depends_on: []
+    unlocks: [n31]
+    tags: [physical, child-safety]
+
+  - id: n31
+    slug: battery-safety
+    title: 锂电池供电 + 安全
+    phase: 5
+    phase_name: 给儿子用
+    project: soundbox
+    order: 31
+    duration: 30
+    difficulty: 2
+    depends_on: []
+    unlocks: [n32, n47]
+    tags: [power, child-safety, shared]
+
+  - id: n32
+    slug: give-to-son
+    title: 给儿子玩 + 观察
+    phase: 5
+    phase_name: 给儿子用
+    project: soundbox
+    order: 32
+    duration: -1
+    difficulty: 1
+    depends_on: [n28, n29, n30, n31]
+    unlocks: []
+    tags: [milestone, ship-it]
+
+  # ╔═══════════════════════════════════════════════╗
+  # ║  SMART CAR 项目专属节点 (n33-n66)              ║
+  # ║  共通基础（n02-n16 等）从 soundbox 复用       ║
+  # ╚═══════════════════════════════════════════════╝
+
+  # ============ Phase 2: 电机原理 ============
+  - id: n33
+    slug: dc-motor-basics
+    title: 直流电机原理
+    phase: 2
+    phase_name: 电机原理
+    project: smart-car
+    order: 14
+    duration: 10
+    difficulty: 2
+    depends_on: [n04]
+    unlocks: [n34]
+    tags: [electronics, motor, smart-car]
+
+  - id: n34
+    slug: h-bridge
+    title: H 桥与电机方向控制
+    phase: 2
+    phase_name: 电机原理
+    project: smart-car
+    order: 15
+    duration: 15
+    difficulty: 3
+    depends_on: [n33]
+    unlocks: [n36, n40]
+    tags: [electronics, motor, smart-car]
+
+  - id: n35
+    slug: pwm-and-speed
+    title: PWM 与速度控制
+    phase: 2
+    phase_name: 电机原理
+    project: smart-car
+    order: 16
+    duration: 15
+    difficulty: 3
+    depends_on: [n05, n33]
+    unlocks: [n40]
+    tags: [electronics, gpio, pwm, smart-car]
+
+  - id: n36
+    slug: l298n-driver
+    title: L298N 驱动板认识
+    phase: 2
+    phase_name: 电机原理
+    project: smart-car
+    order: 17
+    duration: 15
+    difficulty: 2
+    depends_on: [n34]
+    unlocks: [n38, n39]
+    tags: [hardware, motor-driver, smart-car]
+
+  - id: n37
+    slug: power-rails-separation
+    title: 电源分离原则（5V Pi · 12V 电机）
+    phase: 2
+    phase_name: 电机原理
+    project: smart-car
+    order: 18
+    duration: 15
+    difficulty: 3
+    depends_on: [n04]
+    unlocks: [n38, n47]
+    tags: [electronics, power, safety, smart-car]
+
+  # ============ Phase 3: 单电机调通 ============
+  - id: n38
+    slug: wire-one-motor-l298n
+    title: 接 1 个电机到 L298N
+    phase: 3
+    phase_name: 单电机调通
+    project: smart-car
+    order: 19
+    duration: 20
+    difficulty: 2
+    depends_on: [n23, n36, n37]
+    unlocks: [n39]
+    tags: [hardware, motor, smart-car]
+
+  - id: n39
+    slug: wire-l298n-to-pi
+    title: 接 L298N 控制脚到 Pi
+    phase: 3
+    phase_name: 单电机调通
+    project: smart-car
+    order: 20
+    duration: 20
+    difficulty: 3
+    depends_on: [n06, n38]
+    unlocks: [n40]
+    tags: [hardware, motor, smart-car]
+
+  - id: n40
+    slug: gpiozero-motor-class
+    title: Python · gpiozero Motor 类
+    phase: 3
+    phase_name: 单电机调通
+    project: smart-car
+    order: 21
+    duration: 20
+    difficulty: 3
+    depends_on: [n14, n16, n34, n35, n39]
+    unlocks: [n41]
+    tags: [python, motor, smart-car]
+
+  - id: n41
+    slug: single-motor-test
+    title: 单电机正反转测试
+    phase: 3
+    phase_name: 单电机调通
+    project: smart-car
+    order: 22
+    duration: 20
+    difficulty: 2
+    depends_on: [n40]
+    unlocks: [n42]
+    tags: [testing, milestone, smart-car]
+
+  # ============ Phase 4: 4 电机协同 ============
+  - id: n42
+    slug: differential-steering
+    title: 差速转向原理
+    phase: 4
+    phase_name: 4 电机协同
+    project: smart-car
+    order: 23
+    duration: 15
+    difficulty: 3
+    depends_on: [n41]
+    unlocks: [n43]
+    tags: [robotics, smart-car]
+
+  - id: n43
+    slug: wire-four-motors
+    title: 接 4 个电机
+    phase: 4
+    phase_name: 4 电机协同
+    project: smart-car
+    order: 24
+    duration: 30
+    difficulty: 3
+    depends_on: [n38, n42]
+    unlocks: [n44]
+    tags: [hardware, smart-car]
+
+  - id: n44
+    slug: 4wd-control-program
+    title: 4WD 前进/后退/转向程序
+    phase: 4
+    phase_name: 4 电机协同
+    project: smart-car
+    order: 25
+    duration: 30
+    difficulty: 3
+    depends_on: [n40, n42, n43]
+    unlocks: [n46, n52]
+    tags: [python, robotics, milestone, smart-car]
+
+  # ============ Phase 5: 底盘组装 ============
+  - id: n45
+    slug: screws-and-tools
+    title: 螺丝刀 + 螺栓基础
+    phase: 5
+    phase_name: 底盘组装
+    project: smart-car
+    order: 26
+    duration: 10
+    difficulty: 1
+    depends_on: []
+    unlocks: [n46]
+    tags: [physical, smart-car]
+
+  - id: n46
+    slug: mount-motors
+    title: 电机装到底盘
+    phase: 5
+    phase_name: 底盘组装
+    project: smart-car
+    order: 27
+    duration: 30
+    difficulty: 2
+    depends_on: [n44, n45]
+    unlocks: [n47]
+    tags: [physical, smart-car]
+
+  - id: n47
+    slug: mount-pi-and-battery
+    title: 装上 Pi 和电池组
+    phase: 5
+    phase_name: 底盘组装
+    project: smart-car
+    order: 28
+    duration: 30
+    difficulty: 2
+    depends_on: [n31, n37, n46]
+    unlocks: [n48]
+    tags: [physical, power, smart-car]
+
+  - id: n48
+    slug: first-power-on-check
+    title: 第一次"通电不烧"安全检查
+    phase: 5
+    phase_name: 底盘组装
+    project: smart-car
+    order: 29
+    duration: 20
+    difficulty: 3
+    depends_on: [n47]
+    unlocks: [n49]
+    tags: [safety, milestone, smart-car]
+
+  # ============ Phase 6: 超声波避障 ============
+  - id: n49
+    slug: ultrasonic-principle
+    title: 超声波测距原理
+    phase: 6
+    phase_name: 超声波避障
+    project: smart-car
+    order: 30
+    duration: 10
+    difficulty: 2
+    depends_on: []
+    unlocks: [n50]
+    tags: [sensors, physics, smart-car]
+
+  - id: n50
+    slug: hcsr04-wiring
+    title: HC-SR04 接线与读距
+    phase: 6
+    phase_name: 超声波避障
+    project: smart-car
+    order: 31
+    duration: 25
+    difficulty: 3
+    depends_on: [n06, n23, n49]
+    unlocks: [n51]
+    tags: [sensors, python, smart-car]
+
+  - id: n51
+    slug: multi-sensor-layout
+    title: 多传感器布置
+    phase: 6
+    phase_name: 超声波避障
+    project: smart-car
+    order: 32
+    duration: 20
+    difficulty: 2
+    depends_on: [n50]
+    unlocks: [n52]
+    tags: [sensors, smart-car]
+
+  - id: n52
+    slug: avoidance-state-machine
+    title: 避障状态机
+    phase: 6
+    phase_name: 超声波避障
+    project: smart-car
+    order: 33
+    duration: 30
+    difficulty: 4
+    depends_on: [n44, n51]
+    unlocks: [n53]
+    tags: [python, robotics, milestone, smart-car]
+
+  # ============ Phase 7: 摄像头 ============
+  - id: n53
+    slug: camera-types
+    title: CSI vs USB 摄像头
+    phase: 7
+    phase_name: 摄像头
+    project: smart-car
+    order: 34
+    duration: 10
+    difficulty: 1
+    depends_on: []
+    unlocks: [n54]
+    tags: [hardware, camera, smart-car]
+
+  - id: n54
+    slug: csi-libcamera-setup
+    title: 接 CSI 摄像头 + libcamera 跑通
+    phase: 7
+    phase_name: 摄像头
+    project: smart-car
+    order: 35
+    duration: 30
+    difficulty: 3
+    depends_on: [n06, n53]
+    unlocks: [n55]
+    tags: [hardware, camera, smart-car]
+
+  - id: n55
+    slug: video-stream-to-browser
+    title: 视频流到 Mac 浏览器
+    phase: 7
+    phase_name: 摄像头
+    project: smart-car
+    order: 36
+    duration: 30
+    difficulty: 3
+    depends_on: [n14, n54]
+    unlocks: [n56, n60]
+    tags: [networking, video, milestone, smart-car]
+
+  - id: n56
+    slug: camera-pan-tilt-servo
+    title: 摄像头舵机云台
+    phase: 7
+    phase_name: 摄像头
+    project: smart-car
+    order: 37
+    duration: 25
+    difficulty: 3
+    depends_on: [n35, n54]
+    unlocks: [n60]
+    tags: [hardware, servo, smart-car]
+
+  # ============ Phase 8: 远程控制 ============
+  - id: n57
+    slug: ip-and-port
+    title: IP 地址与端口
+    phase: 8
+    phase_name: 远程控制
+    project: smart-car
+    order: 38
+    duration: 15
+    difficulty: 2
+    depends_on: []
+    unlocks: [n58]
+    tags: [networking, fundamentals, smart-car]
+
+  - id: n58
+    slug: flask-hello
+    title: Flask Hello World
+    phase: 8
+    phase_name: 远程控制
+    project: smart-car
+    order: 39
+    duration: 25
+    difficulty: 3
+    depends_on: [n14, n57]
+    unlocks: [n59]
+    tags: [python, web, smart-car]
+
+  - id: n59
+    slug: web-joystick
+    title: 网页虚拟摇杆
+    phase: 8
+    phase_name: 远程控制
+    project: smart-car
+    order: 40
+    duration: 40
+    difficulty: 4
+    depends_on: [n44, n58]
+    unlocks: [n60]
+    tags: [web, frontend, smart-car]
+
+  - id: n60
+    slug: stream-and-control
+    title: 视频流 + 控制合并
+    phase: 8
+    phase_name: 远程控制
+    project: smart-car
+    order: 41
+    duration: 30
+    difficulty: 4
+    depends_on: [n55, n56, n59]
+    unlocks: [n61]
+    tags: [integration, milestone, smart-car]
+
+  - id: n61
+    slug: mobile-responsive
+    title: 移动端响应式
+    phase: 8
+    phase_name: 远程控制
+    project: smart-car
+    order: 42
+    duration: 25
+    difficulty: 3
+    depends_on: [n60]
+    unlocks: [n62]
+    tags: [frontend, mobile, smart-car]
+
+  # ============ Phase 9: 集成与进阶 ============
+  - id: n62
+    slug: mode-switching
+    title: 模式切换 · 手动 vs 自动
+    phase: 9
+    phase_name: 集成与进阶
+    project: smart-car
+    order: 43
+    duration: 30
+    difficulty: 4
+    depends_on: [n52, n61]
+    unlocks: [n63]
+    tags: [python, integration, smart-car]
+
+  - id: n63
+    slug: battery-monitoring
+    title: 电池电量监测
+    phase: 9
+    phase_name: 集成与进阶
+    project: smart-car
+    order: 44
+    duration: 30
+    difficulty: 3
+    depends_on: [n31, n47]
+    unlocks: [n64]
+    tags: [power, monitoring, smart-car]
+
+  - id: n64
+    slug: smartcar-systemd
+    title: systemd 自启动（小车版）
+    phase: 9
+    phase_name: 集成与进阶
+    project: smart-car
+    order: 45
+    duration: 25
+    difficulty: 2
+    depends_on: [n28, n62]
+    unlocks: [n65]
+    tags: [linux, systemd, smart-car]
+
+  - id: n65
+    slug: line-following-optional
+    title: 巡线（可选）
+    phase: 9
+    phase_name: 集成与进阶
+    project: smart-car
+    order: 46
+    duration: 60
+    difficulty: 4
+    depends_on: [n44, n50]
+    unlocks: []
+    tags: [optional, sensors, smart-car]
+
+  - id: n66
+    slug: voice-control-optional
+    title: 语音控制（可选）
+    phase: 9
+    phase_name: 集成与进阶
+    project: smart-car
+    order: 47
+    duration: 90
+    difficulty: 5
+    depends_on: [n44, n55]
+    unlocks: []
+    tags: [optional, audio, ai, smart-car]

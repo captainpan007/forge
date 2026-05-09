@@ -1,0 +1,38 @@
+{
+  "name": "forge",
+  "version": "0.0.1",
+  "private": true,
+  "description": "Personal engineering cockpit — Musk-inverse pedagogy for embedded learners with JARVIS as your AI co-pilot",
+  "homepage": "https://forge.alexpan.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/alexpan/forge.git"
+  },
+  "license": "MIT",
+  "author": "Alex Pan",
+  "engines": {
+    "node": ">=22.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.12.0",
+  "scripts": {
+    "build": "turbo build",
+    "dev": "turbo dev",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "typecheck": "turbo typecheck",
+    "format": "prettier --write \"**/*.{ts,tsx,md,mdx,json,yaml}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,md,mdx,json,yaml}\"",
+    "validate-graph": "tsx scripts/validate-graph.ts",
+    "new-node": "tsx scripts/new-node.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "prettier": "^3.3.0",
+    "prettier-plugin-tailwindcss": "^0.6.8",
+    "tsx": "^4.19.0",
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0",
+    "yaml": "^2.6.0"
+  }
+}
