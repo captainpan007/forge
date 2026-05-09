@@ -84,8 +84,8 @@ git push origin feat/your-thing
 
 ## 谁会 review
 
-- 内容 PR：@alexpan + 该领域 maintainer（未来）
-- 代码 PR：@alexpan
+- 内容 PR：@captainpan007 + 该领域 maintainer（未来）
+- 代码 PR：@captainpan007
 - 文档 PR：通常 24 小时内合并
 
 ## 许可

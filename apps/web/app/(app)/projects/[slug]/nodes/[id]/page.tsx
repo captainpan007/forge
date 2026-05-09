@@ -1,7 +1,18 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import { MDXRemote } from 'next-mdx-remote/rsc'
+import remarkGfm from 'remark-gfm'
 import { getKnowledgeGraph } from '@/lib/content'
+import { loadNodeMdx } from '@/lib/mdx'
+import { mdxComponents } from '@/components/mdx'
 import { formatDuration, difficultyDots } from '@/lib/utils'
+
+// GFM 插件 — 启用 Markdown 表格、任务列表、删除线、自动链接等
+const mdxOptions = {
+  mdxOptions: {
+    remarkPlugins: [remarkGfm],
+  },
+}
 
 export async function generateMetadata({
   params,
@@ -15,12 +26,10 @@ export async function generateMetadata({
 }
 
 /**
- * 节点学习视图（核心页面）— v0.x 简化版
+ * 节点学习视图（核心页面）
  *
- * v1.0 三栏布局：教材 / 交互 / JARVIS
- * v0.x 单栏：仅显示节点元数据 + "查看 MDX 内容"占位
- *
- * 真实 MDX 渲染将在 v0.3 上线（需要 next-mdx-remote 集成 + MDX 组件全部就位）
+ * v0.2: 真实 MDX 渲染上线 — 用 next-mdx-remote/rsc + 已注册的 mdxComponents
+ * v1.0: 三栏布局（教材 / 交互 / JARVIS）目标
  */
 export default async function NodePage({
   params,
@@ -43,6 +52,9 @@ export default async function NodePage({
   const dependencies = node.depends_on
     .map((d) => graph.getNode(d))
     .filter((d): d is NonNullable<typeof d> => d !== undefined)
+
+  // 尝试加载该节点的 MDX 内容；不存在 → 渲染占位
+  const mdxNode = loadNodeMdx(node.id, node.slug)
 
   return (
     <div className="forge-container py-8 max-w-4xl">
@@ -101,20 +113,35 @@ export default async function NodePage({
         </div>
       )}
 
-      {/* MDX 内容占位 — v0.3 上线 */}
-      <div className="forge-card p-8 mb-8 border-forge-accent/30">
-        <div className="text-center">
-          <p className="text-sm font-mono text-forge-fg-subtle mb-2">v0 PREVIEW</p>
-          <h2 className="text-xl font-semibold mb-3">MDX 内容渲染将在 v0.3 上线</h2>
-          <p className="text-sm text-forge-fg-muted max-w-md mx-auto mb-4">
-            当前节点的完整内容（Why / What / Try / Feynman）已写入{' '}
-            <code>content/nodes/{node.id}-{node.slug}.mdx</code>，等待 MDX 渲染层完成后即可显示。
-          </p>
-          <p className="text-xs text-forge-fg-subtle">
-            模板参考：<code>content/nodes/n05-gpio-basics.mdx</code>
-          </p>
+      {/* MDX 真内容 / placeholder */}
+      {mdxNode ? (
+        <article className="prose-forge mb-8">
+          <MDXRemote
+            source={mdxNode.content}
+            components={mdxComponents}
+            options={mdxOptions}
+          />
+        </article>
+      ) : (
+        <div className="forge-card p-8 mb-8 border-forge-warning/30">
+          <div className="text-center">
+            <p className="text-sm font-mono text-forge-warning mb-2">CONTENT PENDING</p>
+            <h2 className="text-xl font-semibold mb-3">这一节的内容还没写</h2>
+            <p className="text-sm text-forge-fg-muted max-w-md mx-auto mb-4">
+              这是一个完全合法的节点（在 <code>knowledge-graph.yaml</code> 里），但
+              <code>
+                content/nodes/{node.id}-{node.slug}.mdx
+              </code>{' '}
+              还不存在——等作者把它写出来。
+            </p>
+            <p className="text-xs text-forge-fg-subtle">
+              想自己写？参考{' '}
+              <code>content/nodes/n05-gpio-basics.mdx</code>{' '}
+              + <code>docs/CONTENT_GUIDE.md</code>
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Navigation */}
       <div className="flex items-center justify-between pt-6 border-t border-forge-border">

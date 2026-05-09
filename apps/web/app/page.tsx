@@ -66,7 +66,7 @@ export default async function HomePage() {
                 开始一个项目 →
               </Link>
               <a
-                href="https://github.com/alexpan/forge"
+                href="https://github.com/captainpan007/forge"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-2.5 rounded-md border border-forge-border text-forge-fg hover:bg-forge-bg-hover transition-colors text-sm"
@@ -107,7 +107,7 @@ export default async function HomePage() {
           <span>© 2026 Alex Pan · MIT License</span>
           <div className="flex gap-4">
             <a
-              href="https://github.com/alexpan/forge"
+              href="https://github.com/captainpan007/forge"
               className="hover:text-forge-fg transition-colors"
             >
               GitHub

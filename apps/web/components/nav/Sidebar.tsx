@@ -50,7 +50,7 @@ export async function Sidebar() {
         {/* Footer */}
         <section className="pt-4 border-t border-forge-border-subtle">
           <a
-            href="https://github.com/alexpan/forge"
+            href="https://github.com/captainpan007/forge"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-forge-fg-subtle hover:text-forge-fg-muted hover:bg-forge-bg-hover transition-colors"

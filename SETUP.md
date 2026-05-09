@@ -103,7 +103,7 @@ pnpm validate-graph
 
 ### 第一次部署
 
-1. 把仓库 push 到 GitHub（`git remote add origin git@github.com:alexpan/forge.git`）
+1. 把仓库 push 到 GitHub（`git remote add origin git@github.com:captainpan007/forge.git`）
 2. 访问 [https://vercel.com](https://vercel.com)，点 **New Project**
 3. 选你的 `forge` 仓库
 4. **Framework Preset**: Next.js（自动检测）

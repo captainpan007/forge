@@ -104,6 +104,8 @@ last_updated: 2026-05-09
 | `<CodeBlock lang>...</CodeBlock>` | 代码块（带 copy / run） |
 | `<HardwareList items />` | 硬件清单（项目 MDX 用） |
 
+⚠ **不要在 MDX 里写 `import` 语句** — `next-mdx-remote` 不解析 imports。组件由 `apps/web/components/mdx/index.tsx` 的 `mdxComponents` map 自动注入到所有 MDX 渲染上下文。直接用 `<Callout>...</Callout>` 即可。如果一个组件没出现在 mdxComponents 里就用了，会变成 unknown HTML 元素（看着像普通 div）。需要新组件 → 先在 `components/mdx/` 加，再 export 到 `index.tsx` 的 `mdxComponents`。
+
 ## 文风
 
 - **用"你"，不用"读者"或"我们"**
