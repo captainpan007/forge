@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { fuzzyScore, type SearchEntry } from '@/lib/search'
+// 关键：从 search-fuzzy import — search.ts 是 server-only（用 node:fs）
+import { fuzzyScore, type SearchEntry } from '@/lib/search-fuzzy'
 import { cn } from '@/lib/utils'
 
 interface CommandPaletteProps {
