@@ -3,6 +3,12 @@ import { z } from 'zod'
 import { streamAgent } from '@forge/ai'
 import type { JarvisMessage } from '@forge/ai'
 import { jarvisToolExecutor } from '@/lib/jarvis-tools'
+import {
+  getOrCreateConversation,
+  getConversationMessages,
+  saveMessage,
+} from '@/lib/db/queries'
+import type { MessageContent } from '@/lib/db/schema'
 
 /**
  * JARVIS 对话端点 — SSE 流式 + Tool Calling
@@ -79,6 +85,39 @@ export async function POST(request: Request) {
   const { messages, projectSlug, nodeId } = parsed.data
   const jarvisMessages = messages as JarvisMessage[]
 
+  // 持久化：找/建对话 + 加载历史 + 保存当前 user message
+  const conversation = await getOrCreateConversation(userId, projectSlug, nodeId)
+  const persistedHistory = await getConversationMessages(conversation.id)
+
+  // 把持久化的历史 + 客户端这次发的 user 消息拼起来
+  // 客户端发来的最后一条是新 user message — 单独保存它
+  const newestUserMessage = jarvisMessages[jarvisMessages.length - 1]
+  if (newestUserMessage?.role === 'user' && newestUserMessage.content.type === 'text') {
+    await saveMessage(conversation.id, 'user', [
+      { type: 'text', text: newestUserMessage.content.text },
+    ])
+  }
+
+  // 用持久化历史作为权威 history（client 传的 messages 只用最后一条 user message 触发）
+  const dbMessages: JarvisMessage[] = persistedHistory
+    .filter((m) => m.role === 'user' || m.role === 'assistant')
+    .flatMap((m) => {
+      const blocks = (m.content ?? []) as MessageContent[]
+      return blocks.map<JarvisMessage>((b) => ({
+        role: m.role as 'user' | 'assistant',
+        content: b,
+      }))
+    })
+
+  // 加上刚保存的最新 user message
+  const fullMessages: JarvisMessage[] =
+    newestUserMessage?.role === 'user' && newestUserMessage.content.type === 'text'
+      ? [...dbMessages, newestUserMessage]
+      : dbMessages
+
+  // 累积 assistant 完整文字 → 流结束后存进 DB
+  let assistantTextBuffer = ''
+
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
@@ -99,10 +138,19 @@ export async function POST(request: Request) {
             currentProjectSlug: projectSlug,
             currentNodeId: nodeId,
           },
-          messages: jarvisMessages,
+          messages: fullMessages,
           toolExecutor: jarvisToolExecutor,
         })) {
+          if (ev.type === 'text_delta') {
+            assistantTextBuffer += ev.text
+          }
           send(ev)
+        }
+        // 流结束 — 把 assistant 完整回复存进 DB
+        if (assistantTextBuffer.length > 0) {
+          await saveMessage(conversation.id, 'assistant', [
+            { type: 'text', text: assistantTextBuffer },
+          ])
         }
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
       } catch (err) {

@@ -25,13 +25,14 @@ interface ChatMessage {
 }
 
 /**
- * JARVIS 浮层 — 全平台常驻 · v0.3 真接 Claude API
+ * JARVIS 浮层 — 全平台常驻 · v0.3.6 持久化对话
  *
  * 设计：
  *   - 浮动按钮在右下；点击展开聊天面板
  *   - 自动从 URL 推断当前 project / node 上下文
  *   - 消息流式渲染（逐 token 显示）
- *   - 历史消息保存在 React state（v0.3.1 加 DB 持久化）
+ *   - **每个 (project, node) context 独立对话历史，存 Turso**
+ *   - 切换 page → 切换对话；刷新页面 → 历史保留
  *   - ⌘J 快捷键打开/关闭
  */
 export function JarvisPanel({ user }: JarvisPanelProps) {
@@ -44,6 +45,43 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
 
   // 从 URL 推断 project / node 上下文（/projects/[slug]/nodes/[id]）
   const ctx = parseRouteContext(pathname)
+
+  // context 变化时（换 page）重新加载该 context 的对话历史
+  useEffect(() => {
+    let cancelled = false
+    async function loadHistory() {
+      const params = new URLSearchParams()
+      if (ctx.projectSlug) params.set('projectSlug', ctx.projectSlug)
+      if (ctx.nodeId) params.set('nodeId', ctx.nodeId)
+      try {
+        const res = await fetch(`/api/jarvis/conversations?${params.toString()}`)
+        if (!res.ok) {
+          if (!cancelled) setMessages([])
+          return
+        }
+        const data = (await res.json()) as {
+          messages: Array<{ id: string; role: 'user' | 'assistant'; text: string }>
+        }
+        if (cancelled) return
+        setMessages(
+          data.messages.map((m) => ({
+            id: m.id,
+            role: m.role,
+            text: m.text,
+          }))
+        )
+        } catch {
+        if (!cancelled) {
+          setMessages([])
+        }
+      }
+    }
+    void loadHistory()
+    return () => {
+      cancelled = true
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ctx.projectSlug, ctx.nodeId])
 
   // 自动滚到底部
   useEffect(() => {

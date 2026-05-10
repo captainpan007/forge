@@ -4,7 +4,7 @@
  * 所有查询都在这里集中，方便 review、加缓存、改 ORM
  */
 
-import { eq, and, desc } from 'drizzle-orm'
+import { eq, and, desc, isNull } from 'drizzle-orm'
 import { db, schema } from './client'
 
 // ═══════════════════════════════════════════════════
@@ -109,4 +109,94 @@ export async function setNodeStatus(
       },
     })
     .returning()
+}
+
+// ═══════════════════════════════════════════════════
+// Conversations + Messages (JARVIS chat persistence)
+// ═══════════════════════════════════════════════════
+
+import { randomUUID } from 'node:crypto'
+
+/**
+ * 找到或创建一个对话 — 按 (user, project, node) context 切分
+ *
+ * 设计哲学：每个 (project, node) 一条线性对话历史。换页面 = 换对话。
+ * 想看历史就回到那个 page。
+ */
+export async function getOrCreateConversation(
+  userId: string,
+  projectSlug: string | undefined,
+  nodeId: string | undefined,
+  mode: 'workshop' | 'coach' | 'review' = 'workshop'
+): Promise<schema.Conversation> {
+  // 找现有对话（最新的一条）
+  const conditions = [
+    eq(schema.conversations.userId, userId),
+    eq(schema.conversations.mode, mode),
+  ]
+  conditions.push(
+    projectSlug
+      ? eq(schema.conversations.contextProjectSlug, projectSlug)
+      : isNull(schema.conversations.contextProjectSlug)
+  )
+  conditions.push(
+    nodeId
+      ? eq(schema.conversations.contextNodeId, nodeId)
+      : isNull(schema.conversations.contextNodeId)
+  )
+
+  const existing = await db.query.conversations.findFirst({
+    where: and(...conditions),
+    orderBy: [desc(schema.conversations.updatedAt)],
+  })
+  if (existing) return existing
+
+  const id = randomUUID()
+  const result = await db
+    .insert(schema.conversations)
+    .values({
+      id,
+      userId,
+      contextProjectSlug: projectSlug ?? null,
+      contextNodeId: nodeId ?? null,
+      mode,
+    })
+    .returning()
+  const created = result[0]
+  if (!created) throw new Error('Failed to create conversation')
+  return created
+}
+
+export async function touchConversation(conversationId: string): Promise<void> {
+  await db
+    .update(schema.conversations)
+    .set({ updatedAt: Math.floor(Date.now() / 1000) })
+    .where(eq(schema.conversations.id, conversationId))
+}
+
+export async function saveMessage(
+  conversationId: string,
+  role: 'user' | 'assistant' | 'tool',
+  content: schema.MessageContent[]
+): Promise<schema.Message> {
+  const id = randomUUID()
+  const result = await db
+    .insert(schema.messages)
+    .values({ id, conversationId, role, content })
+    .returning()
+  const msg = result[0]
+  if (!msg) throw new Error('Failed to save message')
+  await touchConversation(conversationId)
+  return msg
+}
+
+export async function getConversationMessages(
+  conversationId: string,
+  limit = 100
+): Promise<schema.Message[]> {
+  return db.query.messages.findMany({
+    where: eq(schema.messages.conversationId, conversationId),
+    orderBy: [schema.messages.createdAt, schema.messages.id],
+    limit,
+  })
 }
