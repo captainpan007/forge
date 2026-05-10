@@ -2,30 +2,27 @@ import Link from 'next/link'
 import { getKnowledgeGraph } from '@/lib/content'
 
 /**
- * 左侧栏 — 显示 Active Projects 列表 + 全局导航
- *
- * Server Component，拉取项目数据
+ * 左侧栏 — Anti-AI 改造
+ * 用 forge-section-label + monospace 元数据 + 极简 hover
  */
 export async function Sidebar() {
   const graph = await getKnowledgeGraph()
   const projects = Array.from(graph.projects.values())
 
   return (
-    <aside className="w-56 shrink-0 border-r border-forge-border bg-forge-bg overflow-y-auto">
-      <nav className="p-3 space-y-6">
+    <aside className="w-56 shrink-0 border-r border-forge-border-subtle bg-forge-bg overflow-y-auto">
+      <nav className="p-4 space-y-7">
         {/* Active Projects */}
         <section>
-          <h3 className="text-[0.65rem] font-mono text-forge-fg-subtle uppercase tracking-wider px-2 mb-2">
-            Projects
-          </h3>
+          <h3 className="forge-section-label px-2 mb-3">Projects</h3>
           <ul className="space-y-0.5">
             {projects.map((project) => (
               <li key={project.slug}>
                 <Link
                   href={`/projects/${project.slug}/workshop`}
-                  className="flex items-center gap-2 px-2 py-1.5 rounded-md text-sm hover:bg-forge-bg-hover transition-colors"
+                  className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-forge-fg-muted hover:text-forge-fg hover:bg-forge-bg-hover transition-colors group"
                 >
-                  <span className="size-1.5 rounded-full bg-forge-fg-subtle" />
+                  <span className="size-1 rounded-full bg-forge-paper/60 group-hover:bg-forge-paper transition-colors" />
                   <span className="truncate">{project.title}</span>
                 </Link>
               </li>
@@ -35,9 +32,7 @@ export async function Sidebar() {
 
         {/* Tools */}
         <section>
-          <h3 className="text-[0.65rem] font-mono text-forge-fg-subtle uppercase tracking-wider px-2 mb-2">
-            Tools
-          </h3>
+          <h3 className="forge-section-label px-2 mb-3">Tools</h3>
           <ul className="space-y-0.5">
             <SidebarLink href="/dashboard" label="Dashboard" />
             <SidebarLink href="/projects" label="Browse Projects" />
@@ -53,9 +48,9 @@ export async function Sidebar() {
             href="https://github.com/captainpan007/forge"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-2 py-1.5 rounded-md text-xs text-forge-fg-subtle hover:text-forge-fg-muted hover:bg-forge-bg-hover transition-colors"
+            className="flex items-center gap-2 px-2 py-1.5 text-xs font-mono text-forge-fg-subtle hover:text-forge-fg-muted transition-colors"
           >
-            <span>GitHub</span>
+            <span>github</span>
             <span className="ml-auto">↗</span>
           </a>
         </section>
@@ -69,7 +64,7 @@ function SidebarLink({ href, label }: { href: string; label: string }) {
     <li>
       <Link
         href={href}
-        className="block px-2 py-1.5 rounded-md text-sm text-forge-fg-muted hover:text-forge-fg hover:bg-forge-bg-hover transition-colors"
+        className="block px-2 py-1.5 text-sm text-forge-fg-muted hover:text-forge-fg hover:bg-forge-bg-hover transition-colors"
       >
         {label}
       </Link>

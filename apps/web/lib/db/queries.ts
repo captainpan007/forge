@@ -47,6 +47,28 @@ export async function updateUserPreferences(
     .returning()
 }
 
+/**
+ * 部分更新 user — 任意字段（jarvis name/address/preferences/api key 等）
+ */
+export async function updateUserSettings(
+  userId: string,
+  patch: Partial<{
+    jarvisName: string
+    jarvisAddress: string
+    preferences: schema.UserPreferences
+    anthropicApiKey: string | null
+  }>
+): Promise<schema.User> {
+  const result = await db
+    .update(schema.users)
+    .set({ ...patch, updatedAt: Math.floor(Date.now() / 1000) })
+    .where(eq(schema.users.id, userId))
+    .returning()
+  const user = result[0]
+  if (!user) throw new Error(`User ${userId} not found`)
+  return user
+}
+
 // ═══════════════════════════════════════════════════
 // User Projects
 // ═══════════════════════════════════════════════════

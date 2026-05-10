@@ -28,54 +28,80 @@ export default async function DashboardPage() {
 
   const allProjects = Array.from(graph.projects.values())
 
+  const hasActive = activeProjects.length > 0
+
   return (
-    <div className="forge-container py-8">
-      {/* JARVIS Briefing — Phase 3 上线后启用 */}
-      <section className="forge-card p-5 mb-8 border-forge-accent/30 bg-forge-accent-subtle">
-        <div className="flex items-start gap-3">
-          <div className="size-8 rounded bg-forge-accent flex items-center justify-center text-white font-mono text-xs shrink-0">
-            J
-          </div>
-          <div className="flex-1">
-            <p className="text-xs text-forge-accent font-mono mb-1">
-              JARVIS · Daily Briefing
-            </p>
-            <p className="text-sm text-forge-fg leading-relaxed">
-              Sir, 欢迎来到 forge. 您当前还没有激活任何项目——下面有 {allProjects.length} 个可以开始的项目。
-              {' '}建议从 <span className="font-medium">发声盒</span> 开始，约 12 小时即可完成第一个能给儿子玩的成品。
-            </p>
-          </div>
+    <div className="forge-container py-12 max-w-5xl">
+      {/* JARVIS Daily Briefing — drop cap + 纸黄左竖线（Engineering Notebook 招式） */}
+      <section className="mb-14 relative">
+        <p className="forge-section-label mb-3 text-forge-paper flex items-center gap-2">
+          <span className="font-serif italic text-base normal-case tracking-normal">
+            §
+          </span>{' '}
+          JARVIS · Daily Briefing
+        </p>
+        <div className="border-l-2 border-forge-paper pl-5 py-1">
+          <p className="forge-drop-cap-cjk text-[15px] text-forge-fg-muted leading-[1.85] mb-1">
+            <em className="font-sans not-italic text-forge-fg font-medium">
+              {user.jarvisAddress},
+            </em>{' '}
+            欢迎回到 forge. 您当前还没有激活任何项目——下面有{' '}
+            <span className="text-forge-fg font-mono">{allProjects.length}</span>{' '}
+            个可以开始。建议从{' '}
+            <span className="forge-serif-cjk text-forge-paper text-base">
+              发声盒
+            </span>{' '}
+            开始，约 12 小时即可完成第一个能给儿子玩的成品。
+          </p>
         </div>
       </section>
 
-      {/* Active projects */}
-      {activeProjects.length > 0 && (
-        <section className="mb-8">
-          <h2 className="text-lg font-semibold mb-3">Active Projects</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {activeProjects.map((project) => (
-              <ProjectCard key={project.slug} project={project} active />
+      {/* 章节装饰分隔 */}
+      <div className="forge-ornament">
+        <span className="forge-ornament-glyph">✦</span>
+      </div>
+
+      {/* Active projects — Chapter I */}
+      {hasActive && (
+        <section className="mb-14">
+          <div className="forge-roman-chapter" data-roman="I.">
+            <span className="forge-roman-chapter-title">Current Work</span>
+            <span className="forge-roman-chapter-rule" />
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {activeProjects.map((project, i) => (
+              <ProjectCard
+                key={project.slug}
+                project={project}
+                active
+                folio={`fol. ${String(i + 1).padStart(2, '0')}`}
+              />
             ))}
           </div>
         </section>
       )}
 
-      {/* All projects */}
+      {/* All projects — Chapter II */}
       <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-semibold">
-            {activeProjects.length > 0 ? 'Browse More' : '可以开始的项目'}
-          </h2>
+        <div className="forge-roman-chapter" data-roman={hasActive ? 'II.' : 'I.'}>
+          <span className="forge-roman-chapter-title">
+            {hasActive ? 'Browse More' : 'Available Projects'}
+          </span>
+          <span className="forge-roman-chapter-rule" />
           <Link
             href="/projects"
-            className="text-sm text-forge-fg-muted hover:text-forge-fg"
+            className="text-[0.65rem] font-mono text-forge-fg-muted hover:text-forge-paper transition-colors uppercase tracking-wider shrink-0"
           >
-            查看全部 →
+            view all  →
           </Link>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {allProjects.map((project) => (
-            <ProjectCard key={project.slug} project={project} />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {allProjects.map((project, i) => (
+            <ProjectCard
+              key={project.slug}
+              project={project}
+              folio={`fol. ${String(i + 1).padStart(2, '0')}`}
+            />
           ))}
         </div>
       </section>

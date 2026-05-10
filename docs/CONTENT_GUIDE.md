@@ -99,12 +99,34 @@ last_updated: 2026-05-09
 | `<Analogy pairs={[{tech, life}]} />` | 技术概念 vs 生活类比对照 |
 | `<ConceptDiagram src caption />` | 概念图（SVG） |
 | `<VideoEmbed src title duration language />` | 嵌入视频 |
+| `<Wokwi project title description height />` | 嵌入 Wokwi 硬件仿真（Pi Pico / Arduino / ESP32 等） |
 | `<TryThis type="quiz\|code\|hardware" />` | 动手验证 |
 | `<FeynmanPrompt prompt rubric followUps />` | 费曼工坊 |
 | `<CodeBlock lang>...</CodeBlock>` | 代码块（带 copy / run） |
 | `<HardwareList items />` | 硬件清单（项目 MDX 用） |
 
 ⚠ **不要在 MDX 里写 `import` 语句** — `next-mdx-remote` 不解析 imports。组件由 `apps/web/components/mdx/index.tsx` 的 `mdxComponents` map 自动注入到所有 MDX 渲染上下文。直接用 `<Callout>...</Callout>` 即可。如果一个组件没出现在 mdxComponents 里就用了，会变成 unknown HTML 元素（看着像普通 div）。需要新组件 → 先在 `components/mdx/` 加，再 export 到 `index.tsx` 的 `mdxComponents`。
+
+### Wokwi 仿真嵌入
+
+`<Wokwi>` 让节点页能直接跑硬件代码，没真硬件也能玩。Pi Pico / Arduino / ESP32 / STM32 都支持（Pi 4 不支持 Wokwi 仿真，但 GPIO 概念 100% 通用 —— 用 Pico 演示即可）。
+
+```mdx
+<Wokwi
+  project="304804747562680897"
+  title="Pi Pico · LED 闪烁（GPIO 25）"
+  description="按 ▶ 看 LED 每秒闪一次。改 sleep(1) 数字看快慢变化。"
+  height={520}
+/>
+```
+
+**找项目 ID：** 上 https://wokwi.com/discover 找一个相关的公开项目，URL 里 `/projects/<id>` 那段就是 ID。或者自己创建（[wokwi.com/projects/new/pi-pico](https://wokwi.com/projects/new/pi-pico)），保存后从 URL 复制 ID。
+
+**节点写作建议：**
+- N16（LED 闪烁）→ Pi Pico Blink 项目
+- N17（按钮读取）→ Pi Pico + button + LED 项目
+- N18（PWM 调光）→ Pi Pico PWM 项目
+- 概念性节点（N05、N06）可选放，让用户先"看"再"懂"
 
 ## 文风
 

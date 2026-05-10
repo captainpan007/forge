@@ -1,4 +1,5 @@
 import { requireUser } from '@/lib/auth'
+import { JarvisIdentityForm, ApiKeyForm } from './SettingsForms'
 
 export const metadata = {
   title: 'Settings',
@@ -8,75 +9,93 @@ export default async function SettingsPage() {
   const { user } = await requireUser()
 
   return (
-    <div className="forge-container py-8 max-w-3xl">
-      <h1 className="text-2xl font-semibold mb-6">Settings</h1>
+    <div className="forge-container py-12 max-w-3xl">
+      {/* Page header */}
+      <div className="mb-10">
+        <p className="forge-section-label mb-2">§ Preferences</p>
+        <h1 className="forge-serif-cjk text-3xl text-forge-fg">Settings</h1>
+      </div>
 
-      <section className="forge-card p-5 mb-4">
-        <h2 className="text-sm font-mono text-forge-fg-subtle mb-3">JARVIS</h2>
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs text-forge-fg-muted block mb-1">
-              名字
-            </label>
-            <input
-              type="text"
-              defaultValue={user.jarvisName}
-              disabled
-              className="w-full px-3 py-2 rounded-md bg-forge-bg border border-forge-border text-sm font-mono"
-            />
-          </div>
-          <div>
-            <label className="text-xs text-forge-fg-muted block mb-1">
-              对您的称呼
-            </label>
-            <input
-              type="text"
-              defaultValue={user.jarvisAddress}
-              disabled
-              className="w-full px-3 py-2 rounded-md bg-forge-bg border border-forge-border text-sm font-mono"
-            />
-          </div>
-          <p className="text-xs text-forge-fg-subtle">
-            v0.3 上线后可编辑（JARVIS 接入完成后启用）
-          </p>
+      {/* Chapter I — JARVIS */}
+      <section className="mb-12">
+        <div className="forge-roman-chapter" data-roman="I.">
+          <span className="forge-roman-chapter-title">JARVIS Identity</span>
+          <span className="forge-roman-chapter-rule" />
         </div>
-      </section>
-
-      <section className="forge-card p-5 mb-4">
-        <h2 className="text-sm font-mono text-forge-fg-subtle mb-3">
-          ANTHROPIC API KEY
-        </h2>
-        <p className="text-xs text-forge-fg-muted mb-3">
-          BYOK · 您自己的 Claude Key 不会上传到 forge 后端，仅在浏览器加密存储
-        </p>
-        <input
-          type="password"
-          placeholder="sk-ant-..."
-          disabled
-          className="w-full px-3 py-2 rounded-md bg-forge-bg border border-forge-border text-sm font-mono"
+        <JarvisIdentityForm
+          initialName={user.jarvisName}
+          initialAddress={user.jarvisAddress}
         />
-        <p className="text-xs text-forge-fg-subtle mt-2">
-          v0.3 上线后启用
-        </p>
       </section>
 
-      <section className="forge-card p-5">
-        <h2 className="text-sm font-mono text-forge-fg-subtle mb-3">环境信息</h2>
-        <dl className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <dt className="text-forge-fg-muted">User ID</dt>
-            <dd className="font-mono text-xs">{user.id}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-forge-fg-muted">Email</dt>
-            <dd>{user.email}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-forge-fg-muted">注册时间</dt>
-            <dd>{new Date(user.createdAt * 1000).toLocaleDateString('zh-CN')}</dd>
-          </div>
+      {/* Chapter II — API Key */}
+      <section className="mb-12">
+        <div className="forge-roman-chapter" data-roman="II.">
+          <span className="forge-roman-chapter-title">Anthropic API Key</span>
+          <span className="forge-roman-chapter-rule" />
+        </div>
+        <p className="text-xs text-forge-fg-muted mb-4 leading-relaxed">
+          您的 Claude API key — 用于 JARVIS 调用 Claude API。
+          BYOK（Bring Your Own Key）模式：key 存储在您自己的 Turso DB，
+          forge 服务器不收集。{' '}
+          <a
+            href="https://console.anthropic.com/settings/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="forge-link"
+          >
+            从 Anthropic Console 获取
+          </a>
+        </p>
+        <ApiKeyForm hasKey={!!user.anthropicApiKey} />
+      </section>
+
+      {/* Chapter III — Account info */}
+      <section>
+        <div className="forge-roman-chapter" data-roman="III.">
+          <span className="forge-roman-chapter-title">Account</span>
+          <span className="forge-roman-chapter-rule" />
+        </div>
+        <dl className="space-y-2 text-sm font-mono">
+          <Row label="user_id" value={user.id} mono />
+          <Row label="email" value={user.email} />
+          <Row
+            label="created_at"
+            value={new Date(user.createdAt * 1000).toLocaleDateString('zh-CN')}
+          />
+          <Row
+            label="updated_at"
+            value={new Date(user.updatedAt * 1000).toLocaleDateString('zh-CN')}
+          />
         </dl>
       </section>
+    </div>
+  )
+}
+
+function Row({
+  label,
+  value,
+  mono,
+}: {
+  label: string
+  value: string
+  mono?: boolean
+}) {
+  return (
+    <div className="flex items-baseline gap-4 py-1.5 border-b border-forge-border-subtle last:border-0">
+      <dt className="text-forge-fg-subtle text-[0.7rem] uppercase tracking-wider w-28 shrink-0">
+        {label}
+      </dt>
+      <dd
+        className={
+          mono
+            ? 'text-forge-fg-muted text-[0.7rem] truncate'
+            : 'text-forge-fg-muted text-xs'
+        }
+      >
+        {value}
+      </dd>
     </div>
   )
 }

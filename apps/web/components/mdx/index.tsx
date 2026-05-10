@@ -12,6 +12,7 @@ import { TryThis } from './TryThis'
 import { FeynmanPrompt } from './FeynmanPrompt'
 import { ConceptDiagram } from './ConceptDiagram'
 import { VideoEmbed } from './VideoEmbed'
+import { WokwiEmbed } from './WokwiEmbed'
 import { HardwareList } from './HardwareList'
 import { ProjectStats } from './ProjectStats'
 import { PhaseTimeline } from './PhaseTimeline'
@@ -24,6 +25,7 @@ export {
   FeynmanPrompt,
   ConceptDiagram,
   VideoEmbed,
+  WokwiEmbed,
   HardwareList,
   ProjectStats,
   PhaseTimeline,
@@ -31,6 +33,7 @@ export {
 }
 
 // 给 next-mdx-remote 用的组件 map
+// 关键：MDX 里的 <Wokwi /> 走 WokwiEmbed —— 短标签更友好
 export const mdxComponents = {
   Callout,
   Analogy,
@@ -38,6 +41,8 @@ export const mdxComponents = {
   FeynmanPrompt,
   ConceptDiagram,
   VideoEmbed,
+  Wokwi: WokwiEmbed,
+  WokwiEmbed,
   HardwareList,
   ProjectStats,
   PhaseTimeline,

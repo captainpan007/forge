@@ -245,15 +245,16 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
 
   return (
     <>
-      {/* Floating button */}
+      {/* Floating button — 纸黄而非赭橙（区分 JARVIS = 助教 vs 主操作 = 橙） */}
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'fixed bottom-4 right-4 z-40 size-12 rounded-full',
-          'bg-forge-accent text-white shadow-lg',
-          'flex items-center justify-center font-mono font-bold',
-          'hover:bg-forge-accent-hover transition-all',
-          'hover:scale-105 active:scale-95'
+          'fixed bottom-4 right-4 z-40 size-11',
+          'bg-forge-paper text-forge-bg',
+          'flex items-center justify-center font-serif italic font-medium text-lg',
+          'hover:bg-forge-paper/90 transition-all',
+          'hover:scale-105 active:scale-95',
+          'shadow-[0_4px_20px_rgba(212,184,150,0.25)]'
         )}
         aria-label="Toggle JARVIS"
         title={open ? 'Close JARVIS (⌘J)' : 'Open JARVIS (⌘J)'}
@@ -267,20 +268,23 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
           className={cn(
             'fixed bottom-20 right-4 z-40',
             'w-[400px] h-[600px] max-h-[calc(100vh-7rem)]',
-            'forge-card shadow-2xl flex flex-col',
+            'forge-card flex flex-col',
+            'shadow-[0_8px_40px_rgba(0,0,0,0.5)]',
             'animate-slide-in-right'
           )}
         >
-          <header className="px-4 py-3 border-b border-forge-border flex items-center justify-between shrink-0">
+          <header className="px-4 py-3 border-b border-forge-border-subtle flex items-center justify-between shrink-0">
             <div>
-              <h3 className="font-semibold text-sm">{user.jarvisName}</h3>
-              <p className="text-[0.65rem] text-forge-fg-subtle font-mono">
+              <h3 className="font-medium text-sm tracking-tight">
+                {user.jarvisName}
+              </h3>
+              <p className="text-[0.65rem] text-forge-fg-subtle font-mono uppercase tracking-wider">
                 {ctx.label || 'Workshop mode'}
               </p>
             </div>
             <button
               onClick={() => setOpen(false)}
-              className="text-forge-fg-subtle hover:text-forge-fg p-1 rounded"
+              className="text-forge-fg-subtle hover:text-forge-fg p-1"
               aria-label="Close"
             >
               ✕
@@ -288,18 +292,22 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
           </header>
 
           {/* Messages */}
-          <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-3">
+          <div ref={scrollRef} className="flex-1 p-4 overflow-y-auto space-y-4">
             {messages.length === 0 && (
-              <div className="forge-card p-3 bg-forge-bg-elevated/50">
-                <p className="text-xs font-mono text-forge-accent mb-1">
-                  {user.jarvisName}
+              <div className="border-l-2 border-forge-paper pl-3 py-1">
+                <p className="text-xs font-mono text-forge-paper mb-1.5 uppercase tracking-wider">
+                  § {user.jarvisName}
                 </p>
-                <p className="text-sm leading-relaxed">
-                  {user.jarvisAddress}, 我已就位。
+                <p className="text-sm leading-relaxed text-forge-fg-muted">
+                  <em className="font-sans text-forge-fg font-medium not-italic">
+                    {user.jarvisAddress},
+                  </em>{' '}
+                  我已就位。
                   {ctx.label && (
                     <>
                       {' '}
-                      已感知您当前在 <span className="font-mono text-forge-accent">{ctx.label}</span>。
+                      已感知您当前在{' '}
+                      <span className="font-mono text-forge-paper">{ctx.label}</span>。
                     </>
                   )}{' '}
                   随时提问。
@@ -325,10 +333,9 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
                 disabled={busy}
                 placeholder={busy ? `${user.jarvisName} is thinking...` : '问 JARVIS...'}
                 className={cn(
-                  'flex-1 px-3 py-2 rounded-md text-sm',
+                  'flex-1 px-3 py-2 text-sm',
                   'bg-forge-bg border border-forge-border',
                   'placeholder:text-forge-fg-subtle',
-                  'focus:outline-none focus:ring-2 focus:ring-forge-accent',
                   'disabled:opacity-50 disabled:cursor-not-allowed'
                 )}
                 autoComplete="off"
@@ -337,8 +344,8 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
                 type="submit"
                 disabled={busy || !input.trim()}
                 className={cn(
-                  'px-3 py-2 rounded-md text-sm',
-                  'bg-forge-accent text-white',
+                  'px-3 py-2 text-sm',
+                  'bg-forge-accent text-forge-bg',
                   'hover:bg-forge-accent-hover transition-colors',
                   'disabled:opacity-30 disabled:cursor-not-allowed'
                 )}
@@ -376,7 +383,7 @@ function MessageBubble({
   if (msg.role === 'user') {
     return (
       <div className="flex justify-end">
-        <div className="max-w-[85%] px-3 py-2 rounded-md bg-forge-accent/15 text-sm leading-relaxed border border-forge-accent/30">
+        <div className="max-w-[85%] px-3 py-2 bg-forge-accent-subtle text-sm leading-relaxed border-l-2 border-forge-accent text-forge-fg">
           {msg.text}
         </div>
       </div>
@@ -384,8 +391,10 @@ function MessageBubble({
   }
 
   return (
-    <div className="forge-card p-3 bg-forge-bg-elevated/50">
-      <p className="text-xs font-mono text-forge-accent mb-1">{jarvisName}</p>
+    <div className="border-l-2 border-forge-paper pl-3 py-1">
+      <p className="text-xs font-mono text-forge-paper mb-1.5 uppercase tracking-wider">
+        {jarvisName}
+      </p>
       {msg.toolStatus && (
         <p className="text-xs text-forge-fg-subtle font-mono mb-2">{msg.toolStatus}</p>
       )}
