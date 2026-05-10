@@ -2,13 +2,22 @@
  * @forge/ai — JARVIS Agent
  *
  * Public API:
- *   - streamAgent(input): async iterable yielding text deltas
- *   - runAgent(input): non-streaming version
- *   - buildSystemPrompt(ctx): build the JARVIS system prompt
- *   - tools: tool definitions (v0.3.1+)
- *   - 类型: JarvisContext, JarvisMessage, JarvisMode
+ *   - streamAgent(input): async iterable yielding StreamEvent
+ *   - runAgent(input): non-streaming wrapper
+ *   - buildSystemPrompt(ctx)
+ *   - tools: ToolSpec[] for Anthropic API
+ *   - 类型: JarvisContext / JarvisMessage / StreamEvent / ToolExecutor / ToolName
  */
 
 export { streamAgent, runAgent, buildSystemPrompt } from './agent'
-export { tools } from './tools'
-export type { JarvisContext, JarvisMessage, JarvisMode, ToolDefinition } from './types'
+export { tools, TOOL_NAMES } from './tools'
+export type {
+  JarvisContext,
+  JarvisMessage,
+  JarvisMode,
+  StreamEvent,
+  ToolDefinition,
+  ToolExecutor,
+  ToolSpec,
+} from './types'
+export type { ToolName } from './tools'

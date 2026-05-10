@@ -2,23 +2,23 @@ import { auth } from '@clerk/nextjs/server'
 import { z } from 'zod'
 import { streamAgent } from '@forge/ai'
 import type { JarvisMessage } from '@forge/ai'
+import { jarvisToolExecutor } from '@/lib/jarvis-tools'
 
 /**
- * JARVIS 对话端点 — SSE 流式
+ * JARVIS 对话端点 — SSE 流式 + Tool Calling
  *
  * POST { messages: JarvisMessage[], projectSlug?, nodeId? }
  * → text/event-stream
- *   data: {"delta":"..."}
- *   data: {"delta":"..."}
+ *   data: {"type":"text_delta","text":"..."}
+ *   data: {"type":"tool_use_start","name":"..."}
+ *   data: {"type":"tool_use_end","name":"...","result":{...}}
+ *   data: {"type":"turn_end"}
  *   ...
  *   data: [DONE]
- *
- * v0.3: 无 tool calling — 纯对话
- * v0.3.1+: 加 tool use 循环
  */
 
 export const dynamic = 'force-dynamic'
-export const runtime = 'nodejs' // Anthropic SDK 用 Node API
+export const runtime = 'nodejs'
 
 const requestSchema = z.object({
   messages: z
@@ -82,8 +82,14 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder()
   const stream = new ReadableStream({
     async start(controller) {
+      const send = (data: unknown) => {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify(data)}\n\n`)
+        )
+      }
+
       try {
-        for await (const delta of streamAgent({
+        for await (const ev of streamAgent({
           apiKey,
           context: {
             userId,
@@ -94,18 +100,22 @@ export async function POST(request: Request) {
             currentNodeId: nodeId,
           },
           messages: jarvisMessages,
+          toolExecutor: jarvisToolExecutor,
         })) {
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`)
-          )
+          send(ev)
         }
         controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
       } catch (err) {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error'
         console.error('[jarvis/chat] streaming error:', err)
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ error: errorMsg })}\n\n`)
-        )
+        let userFacingError = errorMsg
+        if (errorMsg.includes('403') || errorMsg.toLowerCase().includes('forbidden')) {
+          const model = process.env.ANTHROPIC_MODEL ?? 'haiku-4-5'
+          userFacingError = `${errorMsg}\n\n常见原因：(1) 中国大陆 IP 直连 Anthropic API 被拦截 — 配 HTTPS_PROXY 走本地代理；(2) API key 无效；(3) 账号未启用 ${model} 访问权限。`
+        } else if (errorMsg.includes('401')) {
+          userFacingError = `${errorMsg}\n\nAPI key 无效或过期，去 https://console.anthropic.com/settings/keys 检查。`
+        }
+        send({ type: 'error', error: userFacingError })
       } finally {
         controller.close()
       }
@@ -117,7 +127,7 @@ export async function POST(request: Request) {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
       Connection: 'keep-alive',
-      'X-Accel-Buffering': 'no', // 禁用 nginx 缓冲
+      'X-Accel-Buffering': 'no',
     },
   })
 }

@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect, type FormEvent } from 'react'
 import { usePathname } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { cn } from '@/lib/utils'
 import type { User } from '@/lib/db/schema'
 
@@ -16,6 +18,10 @@ interface ChatMessage {
   /** 还在流式接收中 — 用于显示打字指示器 */
   streaming?: boolean
   error?: string
+  /** 当前正在调用的工具 — 比如"checking your progress..." */
+  toolStatus?: string
+  /** 已调用过的工具历史 */
+  toolCalls?: Array<{ name: string; result?: unknown; error?: string }>
 }
 
 /**
@@ -132,8 +138,13 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
             continue
           }
           try {
-            const parsed = JSON.parse(data) as { delta?: string; error?: string }
-            if (parsed.error) {
+            const parsed = JSON.parse(data) as
+              | { type: 'text_delta'; text: string }
+              | { type: 'tool_use_start'; name: string }
+              | { type: 'tool_use_end'; name: string; result?: unknown; error?: string }
+              | { type: 'turn_end' }
+              | { type: 'error'; error: string }
+            if (parsed.type === 'error') {
               setMessages((m) =>
                 m.map((msg) =>
                   msg.id === assistantMsgId
@@ -143,11 +154,34 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
               )
               continue
             }
-            if (parsed.delta) {
+            if (parsed.type === 'text_delta') {
               setMessages((m) =>
                 m.map((msg) =>
                   msg.id === assistantMsgId
-                    ? { ...msg, text: msg.text + parsed.delta }
+                    ? { ...msg, text: msg.text + parsed.text, toolStatus: undefined }
+                    : msg
+                )
+              )
+            } else if (parsed.type === 'tool_use_start') {
+              setMessages((m) =>
+                m.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? { ...msg, toolStatus: friendlyToolLabel(parsed.name) }
+                    : msg
+                )
+              )
+            } else if (parsed.type === 'tool_use_end') {
+              setMessages((m) =>
+                m.map((msg) =>
+                  msg.id === assistantMsgId
+                    ? {
+                        ...msg,
+                        toolStatus: undefined,
+                        toolCalls: [
+                          ...(msg.toolCalls ?? []),
+                          { name: parsed.name, result: parsed.result, error: parsed.error },
+                        ],
+                      }
                     : msg
                 )
               )
@@ -281,6 +315,19 @@ export function JarvisPanel({ user }: JarvisPanelProps) {
   )
 }
 
+function friendlyToolLabel(name: string): string {
+  switch (name) {
+    case 'recommend_next_node':
+      return '🧭 计算下一步...'
+    case 'get_project_status':
+      return '📊 查看您的进度...'
+    case 'search_failure_log':
+      return '🔍 搜索类似坑...'
+    default:
+      return `🔧 ${name}...`
+  }
+}
+
 function MessageBubble({
   msg,
   jarvisName,
@@ -301,15 +348,76 @@ function MessageBubble({
   return (
     <div className="forge-card p-3 bg-forge-bg-elevated/50">
       <p className="text-xs font-mono text-forge-accent mb-1">{jarvisName}</p>
+      {msg.toolStatus && (
+        <p className="text-xs text-forge-fg-subtle font-mono mb-2">{msg.toolStatus}</p>
+      )}
+      {msg.toolCalls && msg.toolCalls.length > 0 && (
+        <details className="text-xs text-forge-fg-subtle font-mono mb-2">
+          <summary className="cursor-pointer hover:text-forge-fg-muted">
+            ✓ 用了 {msg.toolCalls.length} 个工具
+          </summary>
+          <ul className="mt-1 ml-4 space-y-0.5">
+            {msg.toolCalls.map((t, i) => (
+              <li key={i}>
+                {t.error ? '⚠' : '✓'} {t.name}
+                {t.error && <span className="text-forge-danger"> — {t.error}</span>}
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
       {msg.error ? (
-        <p className="text-sm text-forge-danger">⚠ {msg.error}</p>
+        <p className="text-sm text-forge-danger whitespace-pre-wrap">⚠ {msg.error}</p>
       ) : (
-        <p className="text-sm leading-relaxed whitespace-pre-wrap">
-          {msg.text}
+        <div className="text-sm leading-relaxed jarvis-markdown">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              // 紧凑排版 — 比 prose 默认更密
+              p: ({ children }) => <p className="my-2 first:mt-0 last:mb-0">{children}</p>,
+              ul: ({ children }) => <ul className="list-disc pl-5 my-2 space-y-1">{children}</ul>,
+              ol: ({ children }) => <ol className="list-decimal pl-5 my-2 space-y-1">{children}</ol>,
+              li: ({ children }) => <li className="leading-relaxed">{children}</li>,
+              strong: ({ children }) => <strong className="font-semibold text-forge-fg">{children}</strong>,
+              em: ({ children }) => <em className="italic">{children}</em>,
+              code: ({ className, children, ...props }) => {
+                const isInline = !className?.includes('language-')
+                return isInline ? (
+                  <code className="px-1 py-0.5 rounded bg-forge-bg text-forge-accent text-[0.85em] font-mono" {...props}>
+                    {children}
+                  </code>
+                ) : (
+                  <code className={cn(className, 'block')} {...props}>
+                    {children}
+                  </code>
+                )
+              },
+              pre: ({ children }) => (
+                <pre className="my-2 p-3 rounded-md bg-forge-bg border border-forge-border overflow-x-auto text-xs font-mono">
+                  {children}
+                </pre>
+              ),
+              a: ({ href, children }) => (
+                <a href={href} className="text-forge-accent hover:underline" target="_blank" rel="noopener noreferrer">
+                  {children}
+                </a>
+              ),
+              h1: ({ children }) => <h3 className="font-semibold text-base my-2">{children}</h3>,
+              h2: ({ children }) => <h4 className="font-semibold text-sm my-2">{children}</h4>,
+              h3: ({ children }) => <h5 className="font-semibold text-sm my-1">{children}</h5>,
+              blockquote: ({ children }) => (
+                <blockquote className="border-l-2 border-forge-accent pl-3 my-2 italic text-forge-fg-muted">
+                  {children}
+                </blockquote>
+              ),
+            }}
+          >
+            {msg.text}
+          </ReactMarkdown>
           {msg.streaming && (
             <span className="inline-block w-2 h-4 bg-forge-accent/60 animate-pulse ml-0.5 align-text-bottom" />
           )}
-        </p>
+        </div>
       )}
     </div>
   )
