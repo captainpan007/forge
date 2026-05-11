@@ -1,0 +1,223 @@
+---
+id: n01
+slug: sbc-vs-mcu
+title: SBC / MCU / PC 的区别
+phase: 1
+phase_name: 心智模型
+project: soundbox
+order: 1
+duration: 5
+difficulty: 1
+depends_on: []
+unlocks: [n05]
+tags: [fundamentals, hardware]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="京东购物车纠结">
+
+你打开京东想买"做发声盒的电脑"。搜索 "树莓派 4B" 跳出 ¥350，看着像那么回事。但下面推荐里有 ¥30 的 Arduino UNO，还有评价里说"做按钮玩具用 ESP32 就够"。
+
+你心里嘀咕：**这三个到底差多少？我该买哪个？**
+
+5 分钟读完这一节，你不仅知道为什么选 Pi，还能在朋友面前淡定回："SBC / MCU 不一样，做发声盒就得 SBC，因为要播 mp3。"
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+你买的树莓派叫 **SBC** —— 不是普通电脑，也不是 Arduino 那种小芯片。
+
+99% 的初学者卡壳，是因为**没分清这三种东西**：把 SBC 当成 PC（"我装个 Office 不就行了"），或者把 SBC 当成 MCU（"我直接焊个电路烧进去"）。两种误解都会让你接下来 3 周走错方向。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 三个东西摆桌上 —— Pi、Arduino、Mac —— 你能一句话说清每个是什么、能干嘛、不能干嘛。
+</Callout>
+
+## What · 三个东西到底是什么
+
+### 一句话区分
+
+<MultiAnalogy
+  concept="SBC / MCU / PC 的本质"
+  analogies={[
+    {
+      angle: "PC（你的 Mac）",
+      desc: "通用电脑 — 啥都能干，吃电狠，贵",
+      strength: "强项：写文档、剪视频、跑大软件"
+    },
+    {
+      angle: "SBC（Pi 4 是这个）",
+      desc: "卡片大小的迷你 Linux 电脑 — 能上网，能接传感器",
+      strength: "强项：嵌入式 + 需要操作系统的场景"
+    },
+    {
+      angle: "MCU（Arduino / ESP32 是这个）",
+      desc: "一颗芯片 — 不跑系统，超省电，反应超快",
+      strength: "强项：低功耗 / 实时控制 / 不联网"
+    },
+  ]}
+/>
+
+### 关键差异表
+
+| 维度 | PC (Mac) | SBC (Pi 4) | MCU (Arduino) |
+|---|---|---|---|
+| 跑操作系统？ | ✅ macOS | ✅ Linux | ❌ 直接跑代码 |
+| 能上网 / 看视频？ | ✅ | ✅ | ❌（需要额外模块） |
+| 启动时间 | ~10 秒 | ~30 秒 | < 1 秒 |
+| 待机功耗 | 5-30W | 2-5W | 0.05W |
+| 价格 | 万元 | ¥350 | ¥30 |
+| 反应速度 | 慢（OS 调度） | 慢（OS 调度） | 极快（无 OS 干扰） |
+| 接传感器/电机 | 不直接 | ✅（GPIO） | ✅（强项） |
+
+<PredictThenReveal
+  question="我想做一个'按一下温度传感器报数'的小玩意儿，要电池供电，能用一个月不充电。该选 SBC（Pi）还是 MCU（Arduino/ESP32）？"
+  hint="看上面表格里'待机功耗'那一行 — 电池一个月不充意味着什么？"
+  answer="MCU。待机 0.05W 用普通 18650 电池能扛一个月。Pi 4 待机 2-5W，同电池只能扛一两天就没电。SBC 不是为低功耗设计的 —— 它假设你有插座。"
+/>
+
+<Misconception
+  myth="Pi 能跑 Linux，那它就是个迷你 Mac，做啥都行"
+  truth="Pi 性能远不如 Mac，且为'嵌入式 + 接硬件'优化。让它替代 Mac 跑 Photoshop 一类大软件 = 折磨自己。"
+  why="Pi 4 的 CPU 是 ARM Cortex-A72 4 核 1.5GHz，性能大致相当于十几年前的低端 PC。它的真正价值不是'通用计算'，是'小+便宜+能接 GPIO 控硬件'。买 Pi 当桌面机 = 错配工具。"
+/>
+
+### 你的发声盒为什么选 Pi 4（SBC）而不是 Arduino（MCU）
+
+发声盒的需求：
+1. 检测按钮按下 → MCU 强项 ✓
+2. **播放 mp3 / wav 音频文件** → 这就是关键 —— **音频解码需要操作系统级别的能力**，Arduino 做不到
+3. 将来也许还想：连 WiFi 让它播在线音乐、加屏幕、加录音功能 → 都是 OS 能力
+
+所以 Pi 4 是对的选择。如果你只想做"按一下蜂鸣器响一声"，Arduino 反而更好。
+
+<Callout type="info" icon="🧠">
+  **真相：** 大部分嵌入式产品（智能音箱、扫地机器人）里都是 **SBC + MCU 配合**：SBC 跑系统、连网络、做决策；MCU 实时控制马达 / 传感器。Pi 4 + Arduino 组合就是这个套路的"教学版"。
+</Callout>
+
+### "那 ESP32 呢？听说也很流行"
+
+ESP32 是个**带 WiFi 的 MCU**。它比 Arduino 强，但还是 MCU —— 不跑 Linux、不能直接放 mp3。它的位置在 Arduino 和 Pi 之间，专门做"低功耗 + 联网"场景（比如智能灯泡）。
+
+发声盒不适合 ESP32，因为还是缺音频解码能力。但你做完发声盒，第二个项目可以试 ESP32 —— forge 后面会加。
+
+<ConceptCheck
+  question="你朋友想做一个'书桌湿度计 — 显示在小屏上，靠墙插座供电，常开'。最合适的选择？"
+  options={[
+    {
+      text: "Pi 4（SBC）",
+      correct: false,
+      why: "可以做，但杀鸡用牛刀 — 还要等 30 秒开机才能用，过度复杂。",
+    },
+    {
+      text: "Arduino UNO（MCU）",
+      correct: false,
+      why: "Arduino 可以读传感器，但驱动小屏（OLED / TFT）库支持一般，且没联网拓展性。",
+    },
+    {
+      text: "ESP32（带 WiFi 的 MCU）",
+      correct: true,
+      why: "完美匹配 — 反应快、有 WiFi（将来想接 Home Assistant 也行）、便宜、能驱动小屏。墙插座供电不在乎那点低功耗。",
+    },
+    {
+      text: "Mac mini",
+      correct: false,
+      why: "贵 10 倍，关键是没 GPIO 接传感器。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+不需要任何硬件。3 题选择题，全对再进 Feynman。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '我想做一个"按一下温度传感器报数"的小玩意儿，要电池供电，能用一个月不充电。该选什么？',
+      options: [
+        'Pi 4（SBC）',
+        'Arduino / ESP32（MCU）',
+        'Mac mini（PC）',
+        '随便哪个都行',
+      ],
+      correct: 1,
+      explain: 'MCU 是对的 — 待机 0.05W 能扛一个月。Pi 4 待机 2-5W，电池一两天就没了。SBC 不是为低功耗设计的。',
+    },
+    {
+      q: '为什么发声盒不能用 Arduino 来做？',
+      options: [
+        'Arduino 太贵',
+        'Arduino 没有 GPIO',
+        'Arduino 不跑操作系统，无法直接播放 mp3 文件',
+        'Arduino 不支持中文',
+      ],
+      correct: 2,
+      explain: '播放 mp3 / wav 需要音频解码 + 文件系统 —— 这些是操作系统级能力。Arduino 没操作系统，做不到。',
+    },
+    {
+      q: 'Pi 4 跟你的 Mac 最大的区别是？',
+      options: [
+        'Pi 4 不能上网',
+        'Pi 4 没法接键盘鼠标',
+        'Pi 4 体积小、便宜、有 GPIO 能接传感器，但性能比 Mac 弱很多',
+        '没有区别，Pi 就是迷你 Mac',
+      ],
+      correct: 2,
+      explain: 'Pi 4 也是电脑，能上网能接键鼠 —— 但它的卖点是"小+便宜+能接硬件"。性能上 Mac 完胜。Pi 不是用来替代 Mac 的，是用来做 Mac 做不了的事（嵌入式）。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="桌上的三件套 — 一眼区分"
+  points={[
+    "PC（Mac）= 万元级通用电脑，啥都能干但不接硬件",
+    "SBC（Pi 4）= ¥350 卡片 Linux 电脑，能上网 + 能接 GPIO",
+    "MCU（Arduino / ESP32）= ¥30 一颗芯片，超省电反应快，不跑系统",
+    "选型铁律：要播媒体 / 联网 → SBC；要省电 + 实时 → MCU；要重 GUI → PC",
+    "你的发声盒选 Pi 是因为要播 mp3，需要 OS 级音频解码",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  这一关必须通过才能解锁 N05。**没真懂 → 后面只会更卡。**
+</Callout>
+
+<FeynmanPrompt
+  prompt="请用最简单的话，解释给一个 3 岁孩子听：什么是树莓派？它跟爸爸的电脑有什么不一样？为什么爸爸要用它做发声盒，不用电脑直接做？（30-60 秒，可录音可打字）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（小电脑 / 卡片大小 / 玩具电脑 等）',
+    '✓ 说清了"为什么不用 Mac" — 体积 / 成本 / 能接硬件',
+    '✗ 没用未解释的术语（"GPIO"、"操作系统"、"SBC"等若用了必须翻译）',
+    '✓ 解释了"它能做什么 Mac 做不了的事"',
+  ]}
+  followUps={[
+    {
+      question: '那 Arduino 跟树莓派又有什么不一样啊？',
+      hint: '考点：MCU vs SBC — 一个跑系统一个不跑',
+    },
+    {
+      question: '那为什么我的 Mac 不能直接接按钮和喇叭做发声盒呢？',
+      hint: '考点：理解 GPIO 是 SBC/MCU 的特色，普通 PC 没有暴露这种针脚',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 → 自动解锁 <CrossLink to="n05" relation="下一节">GPIO 是什么</CrossLink>（直接跳过 N02-N04，因为它们不依赖这一节）。
+
+按 learning_path 顺序学接下来是 <CrossLink to="n02" relation="按序">Linux 30 秒认知</CrossLink> —— 因为 Pi 跑的是 Linux，你得先认识它。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 这是嵌入式工程的'第一个分岔口'。很多人卡在这里 —— 拿着 Pi 想做 Arduino 该做的事（实时控制电机），或者拿着 Arduino 想做 Pi 该做的事（连网播视频）。选对工具 = 项目少走 80% 弯路。"*

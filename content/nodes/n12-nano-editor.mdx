@@ -1,0 +1,293 @@
+---
+id: n12
+slug: nano-editor
+title: nano 编辑器
+phase: 2
+phase_name: 第一次握手
+project: soundbox
+order: 12
+duration: 10
+difficulty: 1
+depends_on: [n03, n10]
+unlocks: [n16]
+tags: [linux, cli, editor, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次想改 Pi 上的文件">
+
+SSH 进 Pi 了 (N10)。装好软件了 (N11)。现在你想：**改一下 Pi 的 hostname**（让它叫 "soundbox" 而不是默认的 "raspberrypi"）。
+
+教程说要改 `/etc/hostname` 文件。你敲 `cat /etc/hostname` 看到了内容，但 **cat 只能看，不能改**。
+
+你心想："要不用 VSCode？" —— 但 Pi 没装 VSCode，而且 SSH 远程跑 GUI 软件超慢。
+
+10 分钟教你 **nano** —— Pi 上最简单的命令行文本编辑器。学会它你能改 Pi 上任何配置文件。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+Linux 配置任何东西的 95% 路径是：**改某个文件 → 重启服务**。
+
+- 改 WiFi → 编辑 `/etc/wpa_supplicant/wpa_supplicant.conf`
+- 改 hostname → 编辑 `/etc/hostname`
+- 改启动脚本 → 编辑 `/etc/rc.local` 或写 systemd 文件
+- 改 Python 代码 → 编辑 `~/soundbox/main.py`
+
+**没有编辑器你寸步难行。** nano 是最低门槛的选择，5 分钟上手。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 在 Pi 上能打开 / 修改 / 保存 / 退出任何文本文件，包括需要 sudo 的系统级文件。
+</Callout>
+
+## What · nano 5 分钟教程
+
+### 一句话
+
+**nano = Linux 上最简单的命令行文本编辑器。** 跟你 Mac 上的 TextEdit 比，nano 没有鼠标 / 没有菜单 / 全靠快捷键。但所有快捷键都列在屏幕底部 —— **不用记**。
+
+### 多角度类比
+
+<MultiAnalogy
+  concept="nano 编辑器"
+  analogies={[
+    {
+      angle: "记事本（Notepad）",
+      desc: "最朴素的文本编辑工具，没花哨功能，能写、能保存。nano 是 Linux 版的记事本。",
+      strength: "功能最小够用"
+    },
+    {
+      angle: "微信电脑版的输入框",
+      desc: "你能打字、能删、能粘贴 — 不能改字体 / 不能加表情。nano 也是这样的纯文本世界。",
+      strength: "「纯文本」概念"
+    },
+    {
+      angle: "vim / Emacs 的入门版",
+      desc: "进阶工程师用 vim / Emacs（高效但学习曲线陡峭）。nano 是这两者的'新手友好版' — 没快捷键负担。",
+      strength: "降低 Linux 编辑器入门门槛"
+    },
+  ]}
+/>
+
+### 打开 / 关闭 nano
+
+```bash
+nano hello.txt              # 打开 hello.txt（不存在则新建）
+nano /etc/hostname          # 编辑系统文件（提示无权限）
+sudo nano /etc/hostname     # 用 sudo 改系统级文件
+```
+
+打开后画面：
+
+```
+  GNU nano 7.2                  /etc/hostname
+
+raspberrypi
+_
+
+^G Help    ^O Write Out  ^W Where Is   ^K Cut    ^T Execute
+^X Exit    ^R Read File  ^\ Replace    ^U Paste  ^J Justify
+```
+
+底部那两行就是**所有快捷键**。`^` 代表 **Ctrl 键**（Mac 也是 Control，不是 Cmd）。
+
+### 4 个你需要记的快捷键
+
+| 快捷键 | 干啥 |
+|---|---|
+| **Ctrl + O** | 保存（Write Out） |
+| **Ctrl + X** | 退出 |
+| **Ctrl + K** | 剪切当前行 |
+| **Ctrl + U** | 粘贴 |
+
+**其他都不用记。** 看屏幕底部。
+
+<Misconception
+  myth="编辑文本应该用 vim — 工程师都用那个"
+  truth="vim 的强大有代价：上手陡峭，新手前两周会经常崩溃。nano 5 分钟学会、终身够用。新手用 nano 不丢人。"
+  why="vim 是 1970s 设计的，为快速文本操作做了大量优化，但需要记几十个模式和命令。nano 是 1999 年专门给'不想学 vim 的人'做的。Pi / Ubuntu / Debian 默认都装 nano —— 官方认可它是入门首选。等你写代码上瘾了再学 vim 不迟。"
+/>
+
+### 实操：改 Pi 的 hostname
+
+```bash
+# 1. 用 sudo 打开（因为是系统文件）
+sudo nano /etc/hostname
+
+# 2. 把里面的 "raspberrypi" 改成 "soundbox"
+#    （直接打字 / 删字，跟普通编辑器一样）
+
+# 3. Ctrl+O 保存（会问文件名，直接回车）
+# 4. Ctrl+X 退出
+
+# 5. 还需要改 /etc/hosts 把 raspberrypi 也改成 soundbox
+sudo nano /etc/hosts
+# (找到 127.0.1.1 那行的 raspberrypi 改成 soundbox)
+
+# 6. 重启 Pi 生效
+sudo reboot
+
+# 重启后再 ssh，提示符变成 pi@soundbox:~ $
+```
+
+<PredictThenReveal
+  question="我 sudo nano /etc/hostname 改完保存退出，然后 hostname 命令显示还是 raspberrypi —— 怎么回事？"
+  hint="Linux 怎么读 hostname 这个值？"
+  answer="hostname 是 Pi 启动时读取一次的 — 不是实时读文件。改完文件需要 sudo reboot 或 sudo hostnamectl set-hostname soundbox 让系统重新加载。同理改 WiFi 配置后也得重启服务。"
+/>
+
+### 常见操作技巧
+
+**搜索**：`Ctrl + W` → 输关键词回车 → 跳到匹配位置
+
+**跳到指定行**：`Ctrl + _` → 输行号回车（调试 Python 报错时巨好用）
+
+**全选+复制**：nano 用 `Ctrl + 6` 标记起始位置，移动光标到结束位置，`Ctrl + K` 剪切（即拷贝走+删除）。这个稍麻烦 —— 通常配置文件改少量内容直接打字就行。
+
+**取消未保存退出**：`Ctrl + X` 时如果有未保存修改，nano 会问 "Save modified buffer?" —— **`N` 表示不保存，`Y` 表示保存，按 Esc 或 Ctrl+C 取消退出**。
+
+<ConceptCheck
+  question="我打开 /etc/wpa_supplicant.conf 改 WiFi 密码，改完按 Ctrl+X — nano 跳出 'Save modified buffer (ANSWER &quot;No&quot; WILL DESTROY CHANGES) ?'。我该按啥？"
+  options={[
+    {
+      text: "Y — 我要保存我的修改",
+      correct: true,
+      why: "对。提示告诉你按 N 会丢弃修改。我们辛苦改完的，当然按 Y 保存。然后 nano 会问文件名（按回车即可保留原文件名）。",
+    },
+    {
+      text: "N — 不保存",
+      correct: false,
+      why: "丢弃刚才所有修改。如果你改了 WiFi 密码不保存，Pi 重启后还是连原来的网。",
+    },
+    {
+      text: "Ctrl + C 强退",
+      correct: false,
+      why: "在保存提示界面按 Ctrl+C 会取消退出（继续编辑），不是强退。Ctrl+C 在 nano 主界面是'看当前位置'。",
+    },
+    {
+      text: "Esc",
+      correct: false,
+      why: "Esc 在保存提示界面也是取消退出。要真退出且不保存必须按 N。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**SSH 进 Pi 真做一次**：
+
+```bash
+# 1. 在 Pi 的 home 目录建一个文件
+cd ~
+nano my-first-edit.txt
+
+# 2. 输入这一行
+echo "我学会 nano 了"
+
+# 3. Ctrl + O 保存（提示文件名时直接回车）
+# 4. Ctrl + X 退出
+
+# 5. 用 cat 验证内容确实写入了
+cat my-first-edit.txt
+
+# 6. 删掉这个测试文件
+rm my-first-edit.txt
+```
+
+跑通这 6 步 = 你掌握了 nano 的核心循环：**nano 文件名 → 改 → Ctrl+O 保存 → Ctrl+X 退出**。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '在 nano 里按 Ctrl+O 是什么意思？',
+      options: [
+        '取消编辑',
+        '保存（Write Out）',
+        '退出',
+        '打开新文件',
+      ],
+      correct: 1,
+      explain: 'O 来自 "Output" — Write Out = 输出到文件 = 保存。这是 nano 最关键的快捷键。',
+    },
+    {
+      q: '我要改 /etc/hostname，必须用 sudo nano 而不是 nano，为什么？',
+      options: [
+        'nano 太慢',
+        '/etc/ 下的文件是系统级，普通用户无写权限 — 需要 sudo 提权',
+        'sudo 让 nano 更好看',
+        '没区别',
+      ],
+      correct: 1,
+      explain: '/etc/ 是 Linux 系统配置目录，所有者是 root。普通用户能读不能写。改这里的文件必须 sudo。',
+    },
+    {
+      q: 'Ctrl + 是 nano 的快捷键前缀，那 ^G 是什么操作？',
+      options: [
+        '退出',
+        'Help 帮助',
+        '保存',
+        '删除',
+      ],
+      correct: 1,
+      explain: '看 nano 屏幕底部第一项就是 ^G Help — 这是 nano 的设计哲学：所有快捷键都列在屏幕底部，不用记。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="nano 的核心循环"
+  points={[
+    "打开：nano 文件名（系统文件加 sudo）",
+    "改：直接打字 / Backspace 删 / 方向键移光标",
+    "保存：Ctrl + O（提示文件名直接回车）",
+    "退出：Ctrl + X（未保存会问 Y/N）",
+    "搜索：Ctrl + W；跳行：Ctrl + _",
+    "vim 等你写代码上瘾再学 — 现在 nano 够用",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给完全不懂 Linux 的朋友解释：什么是 nano？为什么 Pi 没有像 VSCode 那种图形界面编辑器？Ctrl+O 和 Ctrl+X 分别干啥？（60 秒）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（记事本 / 微信输入框 等）',
+    '✓ 解释了为什么命令行编辑器仍有意义（SSH 远程 / 嵌入式无屏）',
+    '✓ 给出了 Ctrl+O / Ctrl+X 的明确作用',
+    '✗ 没让朋友觉得 nano 比图形编辑器'差'',
+  ]}
+  followUps={[
+    {
+      question: 'vim 跟 nano 区别是什么？我应该现在就学 vim 吗？',
+      hint: '考点：vim 强大但陡峭，nano 入门首选 — 不冲突',
+    },
+    {
+      question: '我能不能在 Mac 上的 VSCode 远程编辑 Pi 的文件？',
+      hint: '考点：VSCode Remote-SSH 扩展（v0.5 进阶节点会讲）',
+    },
+  ]}
+/>
+
+## 完成后
+
+🎉 **Phase 2（第一次握手）完成！** 你已经掌握了：
+
+- ✅ N08 烧好 SD 卡（含 WiFi/SSH 预配）
+- ✅ N09 SSH 是什么
+- ✅ N10 第一次 SSH 进 Pi
+- ✅ N11 apt 装软件
+- ✅ N12 nano 改文件
+
+**你现在已经完全"驾驭"了 Pi 的命令行环境。** 接下来 **Phase 3 · 软件能力** —— 装 Python 库、写第一段 GPIO 代码、看到 LED 闪起来。
+
+按 learning_path 下一节是 <CrossLink to="n16" relation="解锁">点亮第一个 LED</CrossLink>（也是发声盒最甜美的成就时刻）。
+
+---
+
+**JARVIS Note**:
+> *"Sir, Phase 2 是从'看教程'到'真动手'的分水岭。你完成了它，意味着 Pi 在你眼里不再是块神秘电路板 —— 是个你能远程操作、装软件、改文件的小 Linux 电脑。下一阶段是把它真的'用'起来。"*

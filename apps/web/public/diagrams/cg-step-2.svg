@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 280" font-family="ui-serif, Georgia, serif">
+  <rect width="600" height="280" fill="#0A0A0B"/>
+  <rect width="600" height="280" fill="#D4B896" opacity="0.04"/>
+
+  <text x="300" y="28" text-anchor="middle" fill="#888" font-size="11" font-style="italic">加入外置喇叭 · 各自一个 GND 圈</text>
+
+  <!-- Pi 4 -->
+  <g>
+    <rect x="50" y="100" width="160" height="100" fill="#0A0A0B" stroke="#888" stroke-width="2"/>
+    <text x="130" y="135" text-anchor="middle" fill="#EDEDED" font-size="14">Pi 4</text>
+    <text x="130" y="155" text-anchor="middle" fill="#888" font-size="9" font-style="italic">5V 供电</text>
+    <ellipse cx="130" cy="180" rx="50" ry="10" fill="none" stroke="#7FBF6E" stroke-width="2" stroke-dasharray="3,3"/>
+    <text x="130" y="184" text-anchor="middle" fill="#7FBF6E" font-size="9">Pi GND 圈</text>
+  </g>
+
+  <!-- 外置喇叭模块 + 自己的电池 -->
+  <g>
+    <rect x="370" y="100" width="180" height="100" fill="#0A0A0B" stroke="#888" stroke-width="2"/>
+    <text x="460" y="135" text-anchor="middle" fill="#EDEDED" font-size="13">外置喇叭模块</text>
+    <text x="460" y="155" text-anchor="middle" fill="#888" font-size="9" font-style="italic">独立 9V 电池供电</text>
+    <ellipse cx="460" cy="180" rx="60" ry="10" fill="none" stroke="#fcd34d" stroke-width="2" stroke-dasharray="3,3"/>
+    <text x="460" y="184" text-anchor="middle" fill="#fcd34d" font-size="9">喇叭 GND 圈</text>
+  </g>
+
+  <!-- 两个圈之间的虚空 -->
+  <text x="290" y="155" text-anchor="middle" fill="#888" font-size="14">⋯</text>
+  <text x="290" y="170" text-anchor="middle" fill="#888" font-size="9" font-style="italic">no wires yet</text>
+
+  <text x="300" y="245" text-anchor="middle" fill="#EDEDED" font-size="13">
+    两套电路 — 两套独立的「电位参考系」
+  </text>
+  <text x="300" y="262" text-anchor="middle" fill="#888" font-size="10" font-style="italic">
+    彼此完全不知道对方的电位
+  </text>
+
+  <text x="585" y="270" fill="#888" font-size="8" text-anchor="end" opacity="0.6" font-style="italic">forge · N04 · step 2</text>
+</svg>

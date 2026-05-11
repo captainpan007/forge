@@ -1,0 +1,98 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 380" font-family="ui-serif, Georgia, serif">
+  <rect width="700" height="380" fill="#0A0A0B"/>
+  <rect width="700" height="380" fill="#D4B896" opacity="0.04"/>
+
+  <!-- Title -->
+  <text x="350" y="38" text-anchor="middle" fill="#EDEDED" font-size="20" font-style="italic">GND 必须共连 · 新手第一坑</text>
+  <line x1="200" y1="48" x2="500" y2="48" stroke="#C8623A" stroke-width="1" opacity="0.4"/>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- LEFT: WRONG (no common ground)            -->
+  <!-- ════════════════════════════════════════ -->
+  <g transform="translate(40, 80)">
+    <text x="140" y="0" text-anchor="middle" fill="#FF6B6B" font-size="13">✗ 错误接法</text>
+
+    <!-- Pi rectangle -->
+    <rect x="20" y="30" width="100" height="60" fill="none" stroke="#888" stroke-width="2"/>
+    <text x="70" y="55" text-anchor="middle" fill="#EDEDED" font-size="11">Pi 4</text>
+    <text x="70" y="70" text-anchor="middle" fill="#888" font-size="9" font-style="italic">5V/GND</text>
+
+    <!-- External speaker module rectangle -->
+    <rect x="170" y="30" width="100" height="60" fill="none" stroke="#888" stroke-width="2"/>
+    <text x="220" y="55" text-anchor="middle" fill="#EDEDED" font-size="11">外置喇叭</text>
+    <text x="220" y="70" text-anchor="middle" fill="#888" font-size="9" font-style="italic">5V 电源</text>
+
+    <!-- Pi GPIO signal wire (only signal, NO ground) -->
+    <line x1="120" y1="50" x2="170" y2="50" stroke="#C8623A" stroke-width="2"/>
+    <text x="145" y="42" text-anchor="middle" fill="#C8623A" font-size="9">信号</text>
+
+    <!-- Pi GND going to ITSELF only -->
+    <line x1="50" y1="90" x2="50" y2="160" stroke="#888" stroke-width="2"/>
+    <line x1="40" y1="160" x2="60" y2="160" stroke="#888" stroke-width="2"/>
+    <line x1="44" y1="166" x2="56" y2="166" stroke="#888" stroke-width="1.5"/>
+    <text x="50" y="180" text-anchor="middle" fill="#888" font-size="9">Pi GND</text>
+
+    <!-- Speaker GND going to ITSELF only -->
+    <line x1="220" y1="90" x2="220" y2="160" stroke="#888" stroke-width="2"/>
+    <line x1="210" y1="160" x2="230" y2="160" stroke="#888" stroke-width="2"/>
+    <line x1="214" y1="166" x2="226" y2="166" stroke="#888" stroke-width="1.5"/>
+    <text x="220" y="180" text-anchor="middle" fill="#888" font-size="9">喇叭 GND</text>
+
+    <!-- BIG X over the gap between two grounds -->
+    <text x="135" y="170" text-anchor="middle" fill="#FF6B6B" font-size="32">×</text>
+    <text x="135" y="200" text-anchor="middle" fill="#FF6B6B" font-size="10" font-style="italic">没共连</text>
+
+    <!-- Bottom note -->
+    <text x="140" y="240" text-anchor="middle" fill="#FF6B6B" font-size="11">→ 喇叭收不到信号</text>
+    <text x="140" y="256" text-anchor="middle" fill="#FF6B6B" font-size="11">→ 不知道高电平到底是什么</text>
+    <text x="140" y="272" text-anchor="middle" fill="#888" font-size="10" font-style="italic">没有共同的"零点"</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="350" y1="80" x2="350" y2="350" stroke="#888" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- RIGHT: CORRECT (common ground)            -->
+  <!-- ════════════════════════════════════════ -->
+  <g transform="translate(390, 80)">
+    <text x="140" y="0" text-anchor="middle" fill="#7FBF6E" font-size="13">✓ 正确接法</text>
+
+    <!-- Pi -->
+    <rect x="20" y="30" width="100" height="60" fill="none" stroke="#888" stroke-width="2"/>
+    <text x="70" y="55" text-anchor="middle" fill="#EDEDED" font-size="11">Pi 4</text>
+    <text x="70" y="70" text-anchor="middle" fill="#888" font-size="9" font-style="italic">5V/GND</text>
+
+    <!-- Speaker -->
+    <rect x="170" y="30" width="100" height="60" fill="none" stroke="#888" stroke-width="2"/>
+    <text x="220" y="55" text-anchor="middle" fill="#EDEDED" font-size="11">外置喇叭</text>
+    <text x="220" y="70" text-anchor="middle" fill="#888" font-size="9" font-style="italic">5V 电源</text>
+
+    <!-- Signal wire -->
+    <line x1="120" y1="50" x2="170" y2="50" stroke="#C8623A" stroke-width="2"/>
+    <text x="145" y="42" text-anchor="middle" fill="#C8623A" font-size="9">信号</text>
+
+    <!-- Common ground wire connecting BOTH -->
+    <line x1="50" y1="90" x2="50" y2="180" stroke="#7FBF6E" stroke-width="2.5"/>
+    <line x1="50" y1="180" x2="220" y2="180" stroke="#7FBF6E" stroke-width="2.5"/>
+    <line x1="220" y1="180" x2="220" y2="90" stroke="#7FBF6E" stroke-width="2.5"/>
+
+    <!-- GND symbol in middle -->
+    <line x1="135" y1="180" x2="135" y2="200" stroke="#7FBF6E" stroke-width="2.5"/>
+    <line x1="120" y1="200" x2="150" y2="200" stroke="#7FBF6E" stroke-width="2.5"/>
+    <line x1="125" y1="206" x2="145" y2="206" stroke="#7FBF6E" stroke-width="2"/>
+    <line x1="130" y1="212" x2="140" y2="212" stroke="#7FBF6E" stroke-width="1.5"/>
+    <text x="135" y="228" text-anchor="middle" fill="#7FBF6E" font-size="11">共同 GND</text>
+
+    <!-- Bottom note -->
+    <text x="140" y="260" text-anchor="middle" fill="#7FBF6E" font-size="11">→ 两边有共同的"零点"</text>
+    <text x="140" y="276" text-anchor="middle" fill="#7FBF6E" font-size="11">→ Pi 的 3.3V 信号可被识别</text>
+    <text x="140" y="292" text-anchor="middle" fill="#888" font-size="10" font-style="italic">两根 GND 之间一定要有黑线</text>
+  </g>
+
+  <!-- Bottom takeaway -->
+  <text x="350" y="350" text-anchor="middle" fill="#EDEDED" font-size="13" font-style="italic">
+    电压是相对值 — 两块电路必须先「约定零点」才能互相说话
+  </text>
+
+  <text x="650" y="370" fill="#888" font-size="9" text-anchor="end" font-style="italic" opacity="0.6">forge · N04</text>
+</svg>

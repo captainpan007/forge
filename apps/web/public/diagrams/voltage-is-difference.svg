@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 360" font-family="ui-serif, Georgia, serif">
+  <rect width="700" height="360" fill="#0A0A0B"/>
+  <rect width="700" height="360" fill="#D4B896" opacity="0.04"/>
+
+  <!-- Title -->
+  <text x="350" y="38" text-anchor="middle" fill="#EDEDED" font-size="20" font-style="italic">电压必须是「两点之间」的差</text>
+  <line x1="200" y1="48" x2="500" y2="48" stroke="#C8623A" stroke-width="1" opacity="0.4"/>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- LEFT: mountain (correct concept)         -->
+  <!-- ════════════════════════════════════════ -->
+  <g transform="translate(40, 80)">
+    <text x="130" y="0" text-anchor="middle" fill="#888" font-size="11" font-style="italic">高度差就是势能差</text>
+
+    <!-- Mountain silhouette -->
+    <path d="M 20 220 L 80 90 L 140 150 L 200 70 L 250 220 Z"
+          fill="none" stroke="#C8623A" stroke-width="2"/>
+
+    <!-- Two reference points -->
+    <circle cx="200" cy="70" r="5" fill="#C8623A"/>
+    <text x="195" y="58" text-anchor="end" fill="#EDEDED" font-size="12">A 点</text>
+    <text x="195" y="44" text-anchor="end" fill="#888" font-size="10" font-style="italic">海拔 3000m</text>
+
+    <circle cx="80" cy="90" r="5" fill="#888"/>
+    <text x="65" y="80" text-anchor="end" fill="#EDEDED" font-size="12">B 点</text>
+    <text x="65" y="66" text-anchor="end" fill="#888" font-size="10" font-style="italic">海拔 1500m</text>
+
+    <!-- Height difference indicator -->
+    <line x1="225" y1="70" x2="225" y2="220" stroke="#C8623A" stroke-width="1.5" stroke-dasharray="3,3"/>
+    <line x1="225" y1="90" x2="225" y2="90" stroke="#888"/>
+    <polygon points="221,75 229,75 225,68" fill="#C8623A"/>
+    <text x="240" y="135" fill="#C8623A" font-size="13">A 比 B 高 1500m</text>
+    <text x="240" y="152" fill="#C8623A" font-size="13">→ 势能差 = 1500m</text>
+
+    <!-- Sea level baseline -->
+    <line x1="0" y1="220" x2="270" y2="220" stroke="#4A8FB8" stroke-width="1" stroke-dasharray="2,4"/>
+    <text x="0" y="235" fill="#4A8FB8" font-size="10" font-style="italic">海平面（参考点 = 0）</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="350" y1="100" x2="350" y2="290" stroke="#888" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+
+  <!-- ════════════════════════════════════════ -->
+  <!-- RIGHT: electric circuit (matching concept) -->
+  <!-- ════════════════════════════════════════ -->
+  <g transform="translate(390, 80)">
+    <text x="130" y="0" text-anchor="middle" fill="#888" font-size="11" font-style="italic">电压差就是电势差</text>
+
+    <!-- Battery / source -->
+    <g stroke="#C8623A" stroke-width="2" fill="none">
+      <line x1="50" y1="100" x2="50" y2="180"/>
+      <line x1="35" y1="120" x2="65" y2="120"/>
+      <line x1="40" y1="135" x2="60" y2="135"/>
+      <line x1="35" y1="150" x2="65" y2="150"/>
+      <line x1="40" y1="165" x2="60" y2="165"/>
+    </g>
+    <text x="50" y="95" text-anchor="middle" fill="#EDEDED" font-size="11">+</text>
+    <text x="50" y="195" text-anchor="middle" fill="#888" font-size="11">−</text>
+
+    <!-- Wires + LED + GND -->
+    <line x1="50" y1="100" x2="200" y2="100" stroke="#888" stroke-width="2"/>
+    <line x1="200" y1="100" x2="200" y2="130" stroke="#888" stroke-width="2"/>
+
+    <!-- LED -->
+    <polygon points="195,130 205,130 200,140" fill="none" stroke="#C8623A" stroke-width="2"/>
+    <line x1="195" y1="142" x2="205" y2="142" stroke="#C8623A" stroke-width="2"/>
+    <line x1="200" y1="142" x2="200" y2="155" stroke="#888" stroke-width="2"/>
+    <text x="220" y="138" fill="#C8623A" font-size="10">LED</text>
+
+    <!-- Resistor -->
+    <line x1="200" y1="155" x2="200" y2="165" stroke="#888" stroke-width="2"/>
+    <path d="M 200 165 L 195 170 L 205 175 L 195 180 L 205 185 L 195 190 L 200 195"
+          fill="none" stroke="#C8623A" stroke-width="2"/>
+    <text x="220" y="180" fill="#C8623A" font-size="10">220Ω</text>
+
+    <!-- Wire to GND -->
+    <line x1="200" y1="195" x2="200" y2="220" stroke="#888" stroke-width="2"/>
+    <line x1="50" y1="180" x2="50" y2="220" stroke="#888" stroke-width="2"/>
+    <line x1="50" y1="220" x2="200" y2="220" stroke="#888" stroke-width="2"/>
+
+    <!-- GND symbol -->
+    <line x1="125" y1="220" x2="125" y2="240" stroke="#888" stroke-width="2"/>
+    <line x1="110" y1="240" x2="140" y2="240" stroke="#888" stroke-width="2"/>
+    <line x1="115" y1="245" x2="135" y2="245" stroke="#888" stroke-width="1.5"/>
+    <line x1="120" y1="250" x2="130" y2="250" stroke="#888" stroke-width="1"/>
+    <text x="125" y="265" text-anchor="middle" fill="#4A8FB8" font-size="11" font-style="italic">GND（0V 参考）</text>
+
+    <!-- Voltage labels at 2 points -->
+    <circle cx="50" cy="100" r="4" fill="#C8623A"/>
+    <text x="40" y="100" text-anchor="end" fill="#EDEDED" font-size="11">A</text>
+    <text x="40" y="115" text-anchor="end" fill="#C8623A" font-size="10" font-style="italic">3.3V</text>
+
+    <circle cx="200" cy="100" r="4" fill="#888"/>
+    <text x="210" y="100" fill="#EDEDED" font-size="11">B</text>
+    <text x="210" y="115" fill="#888" font-size="10" font-style="italic">0V (GND)</text>
+
+    <!-- Voltage difference call-out -->
+    <text x="125" y="290" text-anchor="middle" fill="#C8623A" font-size="13">A−B = 3.3V → 电压差</text>
+  </g>
+
+  <!-- Bottom takeaway -->
+  <text x="350" y="335" text-anchor="middle" fill="#EDEDED" font-size="13" font-style="italic">
+    单独说"3.3V"没意义 — 必须说"相对 GND 是 3.3V"
+  </text>
+
+  <text x="650" y="350" fill="#888" font-size="9" text-anchor="end" font-style="italic" opacity="0.6">forge · N04</text>
+</svg>

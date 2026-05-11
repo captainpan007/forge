@@ -1,0 +1,340 @@
+---
+id: n03
+slug: cli-five-commands
+title: 命令行五个命令
+phase: 1
+phase_name: 心智模型
+project: soundbox
+order: 3
+duration: 15
+difficulty: 1
+depends_on: [n02]
+unlocks: [n09, n12, n15]
+tags: [linux, cli, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="朋友远程求助">
+
+电话铃响。朋友："我电脑卡死了不知道怎么救，能帮我吗？" 你："发我 TeamViewer 远控试试。"
+
+5 分钟后你接到屏幕共享 —— **但他的屏幕全黑了，只剩一个黑底白字的窗口**。没鼠标、没图标、只有一个闪烁的光标在等你打字。
+
+你心里咯噔一下："这要怎么操作？" 然后定下来 —— **你最近刚学了 5 个命令**。
+
+`pwd` 看在哪、`ls` 看周围、`cd` 走过去、`cat` 看文件、`sudo` 提权 —— 15 分钟你给他诊断完了。
+
+—— 这一节就是这 5 个命令。**练熟了你 90% 的命令行场景都够用。**
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+未来 3 周你会跟终端打几百次交道。但 **80% 的时间你只用 5 个命令**：`cd` `ls` `pwd` `cat` `sudo`。
+
+很多教程一上来就丢 30 个命令给你，让你觉得"我永远也学不完"。事实是 —— 哪怕用了 5 年的工程师，平时也就这几个命令循环往复。其他的（`grep`、`find`、`awk`、`sed`）**用到了再现学**，初学者根本不需要先囤。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 不看教程、不上网搜，只用这 5 个命令在 Mac / Pi 上找到并查看任意一个文件的内容。
+</Callout>
+
+## What · 五个命令拆开讲
+
+### 命令 1: `pwd` —— "我在哪？"
+
+**Print Working Directory**（打印当前目录）。
+
+打开 Mac 终端（⌘+空格 输 Terminal 回车），敲：
+
+```bash
+pwd
+```
+
+输出大概像 `/Users/你的用户名`。这就是你**当前所在的文件夹**——终端打开时默认在你的 Home 目录。
+
+<Analogy
+  pairs={[
+    { tech: 'pwd', life: '你迷路时打开高德地图，蓝点告诉你"现在在哪条街"' },
+  ]}
+/>
+
+<ConceptCheck
+  question="我刚开终端，敲 pwd，输出 /Users/alexpan。然后敲 cd Projects 再 pwd，会输出什么？"
+  options={[
+    {
+      text: "/Users/alexpan",
+      correct: false,
+      why: "cd Projects 已经把我移到了子目录，pwd 会反映新位置。",
+    },
+    {
+      text: "/Users/alexpan/Projects",
+      correct: true,
+      why: "对。cd 改变了当前目录，pwd 报告当前位置。",
+    },
+    {
+      text: "Projects",
+      correct: false,
+      why: "pwd 永远输出绝对路径（从 / 开始）。",
+    },
+    {
+      text: "/Projects",
+      correct: false,
+      why: "/Projects 是根目录下的 Projects 文件夹，跟我们在的位置不同。注意斜杠位置。",
+    },
+  ]}
+/>
+
+### 命令 2: `ls` —— "这里有什么？"
+
+**LiSt**（列出）。
+
+```bash
+ls
+```
+
+输出当前文件夹里所有文件和子文件夹。加上 `-la` 看详情：
+
+```bash
+ls -la
+```
+
+`-l` = 长格式（显示权限、大小、修改时间）；`-a` = all（包含隐藏文件，那些以 `.` 开头的）。
+
+<Callout type="info" icon="🧠">
+  **为什么是 `-la` 不是 `-l -a`？** Unix 命令传统：多个单字母选项可以合并。你写 `-la` 跟 `-l -a` 完全等价。这是 50 年前的设计，至今全行业通用。
+</Callout>
+
+**输出长这样：**
+```
+drwxr-xr-x   5 alexpan  staff   160 May 10 14:30 .
+drwxr-xr-x  20 alexpan  staff   640 May 10 12:00 ..
+-rw-r--r--   1 alexpan  staff   234 May 10 14:25 forge.md
+drwxr-xr-x   8 alexpan  staff   256 May 10 14:30 Projects
+```
+
+第一列开头的 `d` 表示**目录**（文件夹），`-` 表示**文件**。先认这个就够。
+
+<PredictThenReveal
+  question="我在 Mac 终端敲 ls，看到一个文件夹 Documents。敲 ls -a 多看到几个 `.zshrc` `.gitconfig` `.cache` 这种 — 这些以点开头的是啥？"
+  hint="想想为什么默认 ls 不显示它们 — '隐藏文件'是什么意思？"
+  answer="以 `.` 开头的是'隐藏文件' —— Unix 约定：不打扰用户日常使用的配置文件、系统数据。`.zshrc` 是 Zsh 配置、`.gitconfig` 是 Git 用户信息、`.cache` 是缓存。普通操作不需要看它们，但工程师调试经常要看 → 加 `-a` 显示。"
+/>
+
+### 命令 3: `cd` —— "去那边"
+
+**Change Directory**（切换目录）。
+
+```bash
+cd Projects        # 进入当前目录下的 Projects 文件夹
+cd ..              # 回到上一级（.. = 父目录）
+cd ~               # 回到 Home 目录（~ = 你自己的家）
+cd /               # 跳到根目录（/ = 整个磁盘的最顶层）
+cd -               # 回到上一次所在的目录（实用！）
+```
+
+**练习套路：**
+
+```bash
+pwd                # 看现在在哪
+cd Projects        # 去 Projects
+pwd                # 确认到了
+ls                 # 看里面有啥
+cd ..              # 回退
+pwd                # 确认回来了
+```
+
+跟 Mac 用 Finder 鼠标点文件夹一回事，只是用打字。**等你练熟，打字其实更快**。
+
+### 命令 4: `cat` —— "把这个文件给我看看"
+
+**conCATenate** —— 原意"拼接"，常用于"打印文件内容"。
+
+```bash
+cat forge.md       # 把 forge.md 整个文件内容打印出来
+```
+
+文件长就刷屏到看不见。这时候用：
+
+```bash
+cat forge.md | less   # 用分页器查看，按空格翻页，按 q 退出
+```
+
+`|` 叫**管道**——把前一个命令的输出喂给下一个命令。后面会用很多次。
+
+**Pi 调试场景：** 看 Pi 的硬件信息：
+```bash
+cat /proc/cpuinfo            # CPU 详情
+cat /proc/meminfo            # 内存详情
+cat /etc/os-release          # 当前 OS 版本
+```
+
+这些**都是普通文本文件**，Linux 把硬件信息也"装"成文件给你看。这是 Linux 哲学："Everything is a file"。
+
+### 命令 5: `sudo` —— "我以管理员身份要做这事"
+
+**Super User DO**（以超级用户执行）。
+
+有些操作（装软件、改系统配置、写 GPIO）普通用户没权限做。前面加 `sudo` 临时提权：
+
+```bash
+sudo apt install python3       # 装软件，必须 sudo
+sudo nano /etc/hostname        # 改系统名，必须 sudo
+ls -la                         # 普通命令，不需要 sudo
+```
+
+第一次 `sudo` 会让你输密码（输的时候**屏幕上不会显示任何字符**——别慌，正常输完按回车就行）。
+
+<Misconception
+  myth="安全起见，所有命令前都加 sudo 才稳"
+  truth="完全相反 — 习惯性加 sudo 是最危险的习惯之一。你需要才用，不需要就不加。"
+  why="sudo 让你的命令获得'修改任何东西'的权限。如果你不假思索地用，万一打错命令（比如 `sudo rm -rf /` 那种），破坏力会无限放大。专业工程师只在确实需要写系统文件、装软件、操作硬件时才加 sudo —— 普通文件浏览、查看从来不加。"
+/>
+
+<Callout type="warning" icon="⚠">
+  **`sudo` 是双刃剑。** 最毒的是 `sudo rm -rf /` —— 这一行能把整个系统文件全删光，然后你的 Pi 就开不了机了。**网上让你 `sudo rm -rf` 什么文件夹的，先看清楚再敲。**
+</Callout>
+
+### 一张图：5 个命令的协作
+
+<ConceptDiagram
+  src="/diagrams/cli-five-commands.svg"
+  alt="五个命令的关系"
+  caption="pwd 看位置 → ls 看周围 → cd 移动 → cat 看文件 → sudo 提权"
+/>
+
+### 还差的（晚点再说）
+
+这些**用到了再学**：
+- `mkdir` / `rmdir` — 创建 / 删除文件夹
+- `cp` / `mv` / `rm` — 复制 / 移动 / 删除
+- `grep` — 搜文本
+- `find` — 找文件
+- `chmod` / `chown` — 改权限
+
+**忘掉它们**。先把上面 5 个练熟。
+
+## Try · 动手验证你真懂了
+
+打开你 Mac 终端，跟着完整跑一遍这套流程（约 3 分钟）：
+
+```bash
+# 1. 我在哪？
+pwd
+
+# 2. Home 目录有什么？
+ls -la ~
+
+# 3. 进 Documents
+cd ~/Documents
+pwd
+
+# 4. 列出 Documents 内容
+ls
+
+# 5. 创建一个临时文件夹（用到 mkdir，先剧透一下）
+mkdir forge-test
+cd forge-test
+pwd
+
+# 6. 创建一个文件并写入
+echo "我学完 N03 啦" > note.txt
+
+# 7. 用 cat 看内容
+cat note.txt
+
+# 8. 回到 Home
+cd ~
+pwd
+
+# 9. 删掉这个临时文件夹（剧透 rm 命令）
+rm -rf ~/Documents/forge-test
+```
+
+**这套全跑通你就会用了。** 真的。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '我在 /Users/alexpan/Projects 目录下，敲 cd .. 之后 pwd 会输出什么？',
+      options: [
+        '/Users/alexpan/Projects',
+        '/Users/alexpan',
+        '/Users',
+        '/',
+      ],
+      correct: 1,
+      explain: '`..` 是父目录的意思 — Projects 的父目录是 alexpan。',
+    },
+    {
+      q: '`ls` 和 `ls -a` 有什么区别？',
+      options: [
+        '没区别',
+        '`-a` 显示文件大小',
+        '`-a` 包含隐藏文件（以 `.` 开头的）',
+        '`-a` 按时间排序',
+      ],
+      correct: 2,
+      explain: '`-a` = all。Linux/Mac 把以 `.` 开头的文件视为隐藏文件，比如 `.zshrc`、`.git`。`-a` 让它们都显示出来。',
+    },
+    {
+      q: '为什么要用 `sudo`？什么时候用？',
+      options: [
+        '所有命令前都加 sudo 才安全',
+        '只有改系统级文件 / 装软件 / 操作硬件时才需要',
+        'sudo 让命令跑得更快',
+        'sudo 是给新手用的',
+      ],
+      correct: 1,
+      explain: 'sudo 临时提权，只在普通用户没权限的操作上用。习惯性给所有命令加 sudo 反而是危险习惯 — 万一你打错命令，伤害会无限放大。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="五个命令的角色"
+  points={[
+    "pwd = 「我在哪？」 — 地图蓝点",
+    "ls = 「这里有什么？」 — 看周围（-la 看详情+隐藏）",
+    "cd = 「去那边」 — 移动（.. 上一级，~ 回家，- 回上次）",
+    "cat = 「给我看这文件内容」 — 加 | less 翻页",
+    "sudo = 「我以管理员做这事」 — 慎用，看清命令再敲",
+    "其他命令用到了再学，不要先囤",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="请用最简单的话，解释给一个不懂电脑的朋友：什么是命令行？为什么工程师不用鼠标点点点，要在黑窗口里打字？给他演示 pwd / ls / cd 三个命令大概干什么。（60 秒）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（地图 / 文件柜 / 探险等）',
+    '✓ 解释了"为什么命令行比鼠标快/灵活"（脚本化、远程、精确）',
+    '✗ 没用未解释的术语（"shell"、"目录"等若用要先翻译）',
+    '✓ 三个命令都说了大概作用（位置 / 列表 / 切换）',
+  ]}
+  followUps={[
+    {
+      question: '那为什么有的命令要前面加 sudo 啊？感觉很神奇',
+      hint: '考点：权限模型 — 普通用户 vs 管理员',
+    },
+    {
+      question: '我直接用 Finder 拖文件不就完了，命令行有啥优势？',
+      hint: '考点：自动化（脚本）+ 远程（SSH）+ 嵌入式无屏环境',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 → 解锁 <CrossLink to="n09" relation="后续">首次 SSH 连接 Pi</CrossLink> + N12 + N15。
+
+接下来按 learning_path 是 <CrossLink to="n04" relation="按序">电压·地·电流 60 秒</CrossLink>。命令行先放一放，做完发声盒一遍下来这 5 个命令你会用得滚瓜烂熟。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 我在工程师圈子里见过太多人 —— 学了一年命令行，常用的还是这 5 个。Don't overcomplicate it. 用熟它们，剩下的需要时 30 秒就能查到。"*

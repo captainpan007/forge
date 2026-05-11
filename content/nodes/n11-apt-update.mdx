@@ -1,0 +1,276 @@
+---
+id: n11
+slug: apt-update
+title: apt update / upgrade
+phase: 2
+phase_name: 第一次握手
+project: soundbox
+order: 11
+duration: 10
+difficulty: 1
+depends_on: [n10]
+unlocks: [n14]
+tags: [linux, package-manager, apt, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="进 Pi 后第一件事">
+
+你激动地 SSH 进 Pi 了 (N10)。接下来想装个 Python 的某库、装 mpg321 播放器、装 git 拉代码 —— **但敲下去就 "command not found"，或者装出来的是几年前的老版本**。
+
+为什么？因为你的 Pi 系统**自带了一份'软件清单'**，但这份清单是出厂时的快照 —— 几个月或几年前的。
+
+10 分钟教你：进 Pi **每次第一件事永远是两行命令**。这是嵌入式工程师的肌肉记忆。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+Linux 装软件不像 macOS 拖 .app 文件 —— 它用**包管理器**。Pi 上的包管理器叫 **apt**（Advanced Package Tool）。
+
+apt 有一份本地的"软件清单"，告诉它哪些软件可装、版本是多少。但这份清单**会过期**，所以你装新软件前必须先**更新清单**。
+
+这一节就教两行命令 + 一个心智模型。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 不假思索敲出 `sudo apt update && sudo apt upgrade -y`，并能解释每个词的作用。
+</Callout>
+
+## What · 两行命令搞定
+
+### 一句话区分 update vs upgrade
+
+```bash
+sudo apt update      # 更新「软件清单」(metadata) — 不实际装软件
+sudo apt upgrade -y  # 把已装的所有软件升级到最新版本
+```
+
+**人话翻译：**
+- `update` = "去网上看看现在有哪些软件，最新版本是多少"（只更新清单）
+- `upgrade` = "根据最新清单，把我现有的软件都升级"
+
+<Misconception
+  myth="apt update 就把所有软件都更新了 — 一个命令搞定"
+  truth="apt update 只更新'清单' — 不动你装过的软件。要真升级软件还得 apt upgrade。两个命令配合用。"
+  why="这是 Linux 包管理的特殊设计：清单更新和软件升级解耦。比如你只想看新版有哪些（update），但暂时不升级（节省时间或带宽）。所以叫'清单更新'+'软件升级'，两步。"
+/>
+
+### 类比：app 商店的两个动作
+
+<MultiAnalogy
+  concept="apt update / upgrade"
+  analogies={[
+    {
+      angle: "App Store 刷新",
+      desc: "apt update = App Store 顶部下拉刷新（看哪些 app 有新版可下）；apt upgrade = 点'更新全部'按钮",
+      strength: "苹果用户秒懂"
+    },
+    {
+      angle: "图书馆",
+      desc: "apt update = 看图书馆最新书目录；apt upgrade = 把你借的书都还掉、借同一书的最新版",
+      strength: "强调'清单 vs 实物'分离"
+    },
+    {
+      angle: "JD Plus 会员",
+      desc: "apt update = 看 JD 当前有什么新品；apt upgrade = 把你购物车里的旧型号都换成新版",
+      strength: "中文电商语境"
+    },
+  ]}
+/>
+
+### 实操：进 Pi 第一件事
+
+```bash
+# 你已经 ssh 进 Pi 后：
+
+sudo apt update
+# (输出一堆 "Get:1 http://..."、"Hit:..."，10-30 秒)
+
+sudo apt upgrade -y
+# (-y = 所有提示都自动 yes，不让你逐个确认)
+# (5-15 分钟，看升级的包数量。第一次烧好 Pi 跑可能装 200 个包升级)
+```
+
+**`&&` 把两条命令串起来：**
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+`&&` 表示前一条成功才执行下一条。一个命令搞定两步，第一次进 Pi 的肌肉记忆。
+
+### sudo 为什么必须
+
+包管理器在改 Pi 系统级文件（`/var/lib/apt/...`、`/usr/bin/...`），普通用户没权限写。<CrossLink to="n03" relation="还记得">N03 讲过 sudo</CrossLink> —— 临时管理员权限就在这种场景用。
+
+不加 sudo 会报：
+
+```
+E: Could not open lock file /var/lib/apt/lists/lock - open (13: Permission denied)
+```
+
+### 装一个软件
+
+更新完清单 / 升级完所有软件后，装新的：
+
+```bash
+sudo apt install mpg321 -y       # 装 mp3 播放器（发声盒会用）
+sudo apt install python3-pip -y  # 装 Python pip（已经预装但确认下）
+sudo apt install git -y          # 装 git（拉代码用）
+```
+
+模式：**`sudo apt install <软件名> -y`**
+
+<PredictThenReveal
+  question="我跑了 sudo apt update 看到一堆 'Get:1 http://archive.raspberrypi.org/...'。这些 URL 是什么？"
+  hint="想想'软件清单'从哪儿来。"
+  answer="这些是 Raspberry Pi 官方的「软件源」服务器 — apt 配置里写好的 URL 列表。每个软件包的清单都从这些服务器获取。你也可以加自定义源（比如装 Docker 就要加 docker.com 的源），但默认这些够你做发声盒。"
+/>
+
+### 删软件
+
+```bash
+sudo apt remove mpg321 -y           # 删 mpg321 软件，保留配置文件
+sudo apt purge mpg321 -y            # 删干净，包括配置
+sudo apt autoremove -y              # 清理不再被需要的依赖
+```
+
+<Callout type="info" icon="🧠">
+  **频率：** 每周 1 次 `sudo apt update && sudo apt upgrade -y` 是 Linux 用户的好习惯。Pi 上跑发声盒可能 1 个月才更新一次也无所谓（嵌入式不像服务器要求那么严）。
+</Callout>
+
+<ConceptCheck
+  question="我在 Pi 上敲 sudo apt install mpg321，提示 'Unable to locate package mpg321' — 最可能的原因？"
+  options={[
+    {
+      text: "mpg321 不存在于 Linux 世界",
+      correct: false,
+      why: "mpg321 是著名的命令行 mp3 播放器，Debian / Raspberry Pi OS 默认源里有。",
+    },
+    {
+      text: "本地的「软件清单」太老 — 没跑过 apt update",
+      correct: true,
+      why: "对。第一次烧好 Pi 时 apt 清单是几个月前的快照。先 sudo apt update 把清单刷新，再 install 就能找到。",
+    },
+    {
+      text: "Pi 没联网",
+      correct: false,
+      why: "也可能 — 但 install 报'找不到包'更倾向于清单过期。联网失败会报别的错（Failed to fetch）。",
+    },
+    {
+      text: "需要付费",
+      correct: false,
+      why: "Raspberry Pi OS 软件源全部免费。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**SSH 进 Pi 真做一次**：
+
+```bash
+# 1. 更新清单
+sudo apt update
+
+# 2. 升级所有已装软件
+sudo apt upgrade -y
+
+# 3. 装一个新软件（mpg321 - 发声盒会用）
+sudo apt install mpg321 -y
+
+# 4. 验证装上了
+mpg321 --version
+# 应该看到 "mpg321 0.3.x ..."
+
+# 5. 清理无用依赖
+sudo apt autoremove -y
+```
+
+**跑通 = 你掌握了 Linux 装软件全流程。**
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'apt update 跟 apt upgrade 区别是？',
+      options: [
+        '没区别',
+        'update 刷新清单，upgrade 真升级软件',
+        'update 是升级 Pi 系统，upgrade 是升级软件',
+        '一个是中文一个是英文',
+      ],
+      correct: 1,
+      explain: 'update = 刷新本地软件清单（metadata），不动软件本身；upgrade = 根据最新清单升级已装的软件。配合用，先 update 再 upgrade。',
+    },
+    {
+      q: '为什么命令前要加 sudo？',
+      options: [
+        '迷信',
+        '包管理器改系统级文件，需要管理员权限',
+        '加 sudo 速度更快',
+        '不加也行，加了好看',
+      ],
+      correct: 1,
+      explain: 'apt 改 /var/lib/apt/lists/, /usr/bin/ 等系统级目录，普通用户无写权限。sudo 临时提权。',
+    },
+    {
+      q: '-y 是什么意思？',
+      options: [
+        '"yes" 的简写 — 自动确认所有交互提示',
+        '安静模式',
+        '黄色输出',
+        '没用，不加也行',
+      ],
+      correct: 0,
+      explain: 'apt upgrade / install 默认会问 "Do you want to continue? [Y/n]"。-y 让你不用按 y 回车，全自动。脚本里特别有用。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="apt 包管理三剑客"
+  points={[
+    "进 Pi 第一件事：sudo apt update && sudo apt upgrade -y",
+    "装软件：sudo apt install <名字> -y",
+    "删软件：sudo apt remove / purge <名字>",
+    "Linux 跟 macOS 装软件理念完全不同：包管理器 vs 拖 .app",
+    "apt 清单从「软件源」拉，源都在 /etc/apt/sources.list 配置",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给完全不懂 Linux 的朋友解释：apt 是什么？为什么 update 和 upgrade 是两个不同的命令？跟 App Store 有什么相似？（60 秒）"
+  scoringRubric={[
+    '✓ 用了 App Store / 图书馆 等生活类比',
+    '✓ 解释了为什么"清单"和"软件"是两件事',
+    '✓ 提到 sudo 的必要性',
+    '✗ 没用未解释的术语（"package"、"repository"等若用要先翻译）',
+  ]}
+  followUps={[
+    {
+      question: '如果我跳过 apt update 直接 apt install，会怎样？',
+      hint: '考点：清单过期 → 装的可能是几个月前的老版本，或干脆找不到包',
+    },
+    {
+      question: 'Mac 没有 apt，怎么装命令行工具？',
+      hint: '考点：Homebrew 是 Mac 的 apt 对应物 (brew install xxx)',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 在 Pi 上真跑过一次 update/upgrade/install → 解锁 N14 等 + 后面所有"装软件"节点畅通。
+
+下一节按 learning_path 是 <CrossLink to="n12" relation="下一节">nano 编辑器</CrossLink> —— 学会在 Pi 上改文件，是配置一切东西的前提。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 'sudo apt update' 这串字符你下半辈子可能敲几万次。这是 Linux 工程师的呼吸 —— 每次进生面孔机器第一件事。今天就把这肌肉记忆建立起来。"*

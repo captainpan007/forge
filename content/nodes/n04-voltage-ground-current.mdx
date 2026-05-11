@@ -1,0 +1,398 @@
+---
+id: n04
+slug: voltage-ground-current
+title: 电压·地·电流 60 秒
+phase: 1
+phase_name: 心智模型
+project: soundbox
+order: 4
+duration: 10
+difficulty: 1
+depends_on: []
+unlocks: [n05, n21, n22, n33]
+tags: [electronics, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+{/* ═══════════════════════════════════════════════════════════ */}
+{/*  v0.6 金标 — 包含 Ciechanowski 风渐进拼装 + Tangle 风可变    */}
+{/*  数字 + 动态水管演示 + 对错并排 + 词图色彩锚定。            */}
+{/* ═══════════════════════════════════════════════════════════ */}
+
+<HandsOnHook scene="冒烟事故现场">
+
+你刚把 LED 接到 Pi 的 3.3V 输出针脚上，没加电阻。线刚一接好，**LED 闪了一下，然后没了**。手摸过去 —— 烫手。再仔细一闻，有股焦塑料味。
+
+为什么？你只接了 3.3V，又不是 220V 市电。
+
+—— 答案在这一节末尾的"动态水管"实验里。先读，最后亲手拖滑块复现这个烧 LED 的瞬间。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+下一节开始你会真的接线，按钮、LED、喇叭、电机一路接到 Pi 上。**接错就是冒烟、烧 Pi、电池漏液。** 真金白银的硬件损失。
+
+但物理书里那种"麦克斯韦方程组"是你 99% 不需要的。**实操层面只要 3 个概念就够：电压、地、电流。** 60 秒讲清楚，10 分钟练熟。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 看任何电路图，你能说出"哪根是供电、哪根是地、电流大概从哪流到哪"。开篇那个烧 LED 的事故，你能 30 秒内诊断出原因。
+</Callout>
+
+回想一下 <CrossLink to="n01" relation="还记得">SBC 跟 PC 的区别</CrossLink>—— Pi 跟外界打交道靠 GPIO。但 GPIO 是"金属手指" —— **手指能戳东西的前提是手指里有电流**。这一节先讲电的基本规则。
+
+## What · 核心心智模型：电路 = 水管系统
+
+不要去背公式。**记住"水管"这个类比就够支撑后面 20 节的实操**。
+
+下面这个演示是这一节最重要的图 —— 拖两个滑块亲手感受 **I = V / R** 是怎么运作的：
+
+<WaterFlow />
+
+试试这几个组合，找找直觉：
+- **V 高 + R 低** → 水流爆表（红色警告） → 这就是开篇 LED 烧的瞬间
+- **V 高 + R 高** → 水流适中 → LED 正常发光
+- **V 低 + R 任意** → 没什么水流 → 灯暗或不亮
+
+### 多重类比：电压是什么
+
+为了让"电压"真正长进你脑子里，从 3 个不同领域看 —— 一个类比有盲点，3 个叠加才完整：
+
+<MultiAnalogy
+  concept="电压 (V)"
+  analogies={[
+    {
+      angle: "水管",
+      desc: "水龙头的水压。水压越高，水冲得越猛。",
+      strength: "直观感受'推动力'"
+    },
+    {
+      angle: "山",
+      desc: "山顶到山脚的高度差。差越大，往下滚的石头越快。",
+      strength: "强调'差' — 没差就没势能"
+    },
+    {
+      angle: "楼层",
+      desc: "你站 10 楼跟站 1 楼，掉下去的能量不一样。电压就是'电的楼层差'。",
+      strength: "层次直觉 — 每个点都有相对位置"
+    },
+  ]}
+/>
+
+### 关键洞察 1：电压必须是「两点之间」的差
+
+水压必须有两个高度才有意义 —— 山顶到山脚。**单独一根线没有电压。**
+
+你说"GPIO 17 是 3.3V"，**实际意思是它相对 GND 是 3.3V**。
+
+<ConceptDiagram
+  src="/diagrams/voltage-is-difference.svg"
+  alt="电压是两点之间的差 — 山高度差类比"
+  caption="左：山顶 A 海拔 3000m，山腰 B 海拔 1500m，A 比 B 高 1500m。右：电路里 A 点 3.3V，GND 是 0V，电压差 = 3.3V。"
+/>
+
+<PredictThenReveal
+  question="如果一段水管两端水压完全相同，水会流吗？"
+  hint="想想电压'差'的本质 — 没差，会有什么发生？"
+  answer="不会流。水压相等 = 没有'差' → 没有推动力 → 水静止。电路同理：两点电压相等就没电流。这是为什么短路反而不工作 — 看似有 5V，但两端被短到一起后没差了。"
+/>
+
+<Misconception
+  myth="GND 就是接到大地里去（接到泥土里）"
+  truth="GND 只是电路里大家约定的「零点」 — 跟大地没关系。"
+  why="电压是相对的。电路里随便挑一个点，把它叫做 0V，其他所有电压都拿它当参考点 —— 这个被选中的点就叫 GND。在 Pi 4 上，GND 就是几根特定针脚连着的内部金属，不是接到房子地基里。"
+/>
+
+<RecallBeat
+  prompt="刚才说了'电压是差'，再问你：单独说 'GPIO 17 是 3.3V' 完整的意思是什么？想 5 秒再继续。"
+  answer="完整意思是「GPIO 17 相对于 GND 是 3.3V」。少了'相对于 GND'就不严谨。这就是为什么所有外部电路都必须跟 Pi 共连 GND —— 没共连 = 没共同参考 = 互相听不懂。"
+  seconds={5}
+/>
+
+### 关键洞察 2：GND 必须共连 —— 跟着 4 步拼一遍
+
+这是新手第一坑。**直接讲结论你会忘**。跟着这 4 步拼一遍，永远记住：
+
+<AssemblyStepper
+  intro="发声盒里 Pi 控制外置喇叭，GND 必须共连"
+  steps={[
+    {
+      title: "起手 — Pi 一个，自己有 GND 圈",
+      visual: "/diagrams/cg-step-1.svg",
+      description: <>桌上只有 Pi。Pi 自己有完整的 5V 供电 + 内部 GND 网络 —— 这是它的「电位参考系」。绿色虚线圈表示「Pi 这边的零点」。</>,
+      newComponent: "Pi 4 + 它自己的 Pi GND 圈"
+    },
+    {
+      title: "加入外置喇叭 — 它有自己独立的 GND 圈",
+      visual: "/diagrams/cg-step-2.svg",
+      description: <>桌上多一块外置喇叭模块，自己有独立 9V 电池供电。<HighlightedTerm color="amber">喇叭 GND 圈（黄色）</HighlightedTerm> 跟 <HighlightedTerm color="green">Pi GND 圈（绿色）</HighlightedTerm> 完全没关系 —— 两套独立的「电位参考系」。</>,
+      newComponent: "独立电源驱动的外置喇叭模块"
+    },
+    {
+      title: "只连信号线 — 喇叭还是哑的",
+      visual: "/diagrams/cg-step-3.svg",
+      description: <>你拉一根 <HighlightedTerm color="orange">橙色信号线</HighlightedTerm> 从 Pi 的 GPIO 17 接到喇叭的 IN 脚。Pi 把"高电平 = 3.3V"发出去 —— 但喇叭这边的电路根本不知道 Pi 说的 3.3V 是相对**什么**的 3.3V。两个 GND 圈互不相通，没有共同的「零点」 → 信号无意义。</>,
+      newComponent: "信号线（GPIO 17 → 喇叭 IN）"
+    },
+    {
+      title: "加一根黑线 — 两个 GND 圈合并 → 喇叭响",
+      visual: "/diagrams/cg-step-4.svg",
+      description: <>多加一根 <HighlightedTerm color="green">黑线（绿色高亮）</HighlightedTerm> 从 Pi 的 GND 针脚到喇叭的 GND 针脚。瞬间两个独立的 GND 圈合并成一个大圈 —— 现在 Pi 和喇叭有了**共同的零点参考**。Pi 说 3.3V，喇叭立刻能解释为"相对我们共同的零点 3.3V"。</>,
+      newComponent: "GND 共连线（黑线）"
+    },
+  ]}
+/>
+
+**铁律**：任何 Pi 外接的、用独立电源驱动的电路，**都必须拉一根 GND 共连线**。这就是发声盒、智能小车、所有进阶项目里"莫名不工作"的第一原因。
+
+<SideBySide
+  left={{
+    label: "错的接法 — 只信号线，无共连",
+    visual: "/diagrams/cg-step-3.svg",
+    caption: "Pi 跟外置电源各自有 GND 圈，互不相连。",
+    consequence: "→ 喇叭收不到信号 / 莫名抽风",
+    alt: "无共连 GND 错误"
+  }}
+  right={{
+    label: "对的接法 — 加 GND 共连",
+    visual: "/diagrams/cg-step-4.svg",
+    caption: "一根黑线把两个 GND 合成一个共同零点。",
+    consequence: "→ 信号有共同参考，喇叭工作",
+    alt: "共连 GND 正确"
+  }}
+  takeaway="两块电路必须先「约定零点」才能互相说话"
+/>
+
+<ConceptCheck
+  question="我用外置 5V 电池给小喇叭供电，Pi 的 GPIO 17 控制信号也连到了喇叭，但喇叭怎么都不响。最可能的问题？"
+  options={[
+    {
+      text: "Pi 的 GPIO 17 没正确编程",
+      correct: false,
+      why: "可能，但更常见的是硬件问题。先排除硬件再排除软件。",
+    },
+    {
+      text: "Pi 的 GND 没跟喇叭电池的 GND 连起来",
+      correct: true,
+      why: "这是新手第一坑。两个独立电源 → 两个独立的'零点' → 信号过去对方理解不了。一根黑线连起来即解决。",
+    },
+    {
+      text: "GPIO 17 输出电压太低",
+      correct: false,
+      why: "Pi 的 3.3V 给信号已经够，喇叭只需要识别'高/低电平'。问题不在电压。",
+    },
+    {
+      text: "喇叭坏了",
+      correct: false,
+      why: "在排除常见接线问题前不要先怀疑元件本身坏。90% 的'坏了'其实是接错了。",
+    },
+  ]}
+/>
+
+### 关键洞察 3：电流 —— 那个烧 LED 的真凶
+
+回到开篇事故：**为什么 3.3V 接 LED 会烧？**
+
+水管类比：你的水池水压不算高（3.3V），但如果**把进水管口直接撑开到无限大**（电阻 = 0），单位时间冲进来的水量就是无限大。
+
+公式：**I = V / R**（电流 = 电压 / 电阻）
+
+**亲手算一遍。下面是发声盒上的 LED 提示灯 —— 拖滑块改任意参数，电阻值实时更新：**
+
+<LiveBlock
+  initial={{ V_source: 3.3, V_led: 2.0, I_target: 10 }}
+  label="LED 限流电阻计算器"
+>
+
+  当电源电压是 <LiveParam name="V_source" min={1.5} max={5} step={0.1} unit="V" />，
+  红 LED 工作电压 <LiveParam name="V_led" min={1.8} max={3.2} step={0.1} unit="V" />，
+  目标电流 <LiveParam name="I_target" min={1} max={30} step={1} unit="mA" />，
+
+  那需要的限流电阻是 <LiveDerived
+    label="R"
+    compute="V_source - V_led <= 0 ? 0 : (V_source - V_led) * 1000 / I_target"
+    digits={0}
+    unit="Ω"
+    warn="V_source - V_led <= 0"
+  />。
+
+  **试试拖：**
+  - V_source 拖到 **5V**（从 USB 直接供电）看 R 怎么变 ——
+    需要的电阻更大了
+  - I_target 拖到 **25mA**（亮但接近 LED 极限）看 R ——
+    电阻变小了
+  - V_led 拖到 **3.0V**（蓝/白 LED）看 R ——
+    电阻几乎砍半，因为电压差小了
+
+  <strong>极端情况测试：</strong>把 V_led 拖到 ≥ V_source 看会发生什么 ——
+  电压差 ≤ 0，公式失效，灯根本不会亮。
+
+</LiveBlock>
+
+<WorkedExample
+  context="发声盒 LED 提示灯（红色）的标准选择"
+  problem="给 Pi 接一个红色 LED 当工作指示灯，应该用多大的限流电阻？"
+  steps={[
+    {
+      do: "查 LED 工作电压：典型红 LED 约 2V",
+      why: "数据手册有，红 ≈ 2V，绿 ≈ 2.2V，蓝/白 ≈ 3.0V — 颜色越冷电压越高",
+    },
+    {
+      do: "算电阻两端电压：3.3V − 2V = 1.3V",
+      why: "Pi 给的总电压 3.3V，LED 自己吃 2V，剩下 1.3V 落在电阻上",
+    },
+    {
+      do: "选目标电流：10mA（适中亮度）",
+      why: "5mA 偏暗、20mA 偏亮且耗电；10mA 是甜蜜点",
+    },
+    {
+      do: "套欧姆定律：R = V/I = 1.3 / 0.01 = 130Ω",
+      why: "理论最小 130Ω。市面常见标值跳到 220Ω — 用 220Ω 更保险",
+    },
+  ]}
+  answer="220Ω 限流电阻（理论最小 130Ω，实际买 220Ω 即可）"
+/>
+
+### Pi 4 GPIO 极限（必记）
+
+```
+Pi 4 GPIO：
+  - 输出电压：3.3V（不是 5V！）
+  - 单针脚最大电流：16mA
+  - 所有 GPIO 总和：< 50mA
+```
+
+| 你想做的事 | 能不能直接 GPIO 推 |
+|---|---|
+| 推一个 LED（10mA）| ✅ 能 |
+| 推 3 个 LED 并联 | ⚠ 接近极限 |
+| 推一个继电器（30mA）| ✅ 勉强能 |
+| 推一个直流小电机（150mA）| ❌ 烧 |
+| 推一个大喇叭（500mA）| ❌ 烧 |
+
+凡是动东西（电机/大喇叭）→ 几百 mA → Pi 推不动 → 必须**外置电源 + 三极管 / MOSFET / H 桥**当中间人。这些是 <CrossLink to="n21" relation="后面会讲">N21 按钮电路</CrossLink>、<CrossLink to="n33" relation="小车篇展开">N33 H 桥</CrossLink> 的内容。
+
+<DeepDive title="为什么 Pi 4 GPIO 是 3.3V 不是 5V？" hint="懂这个能避免大量翻车">
+
+90 年代的 5V TTL 逻辑（早期数字电路标准）耗电高、发热大。21 世纪芯片往低功耗 + 高密度走 —— Pi 4 内部用 1.8V 核心电压，对外暴露 3.3V GPIO 是个折中：
+
+- **3.3V** = 跟现代传感器（OLED、ADC、数字温度计）兼容
+- **不是 5V** = 接 5V 信号会击穿 GPIO 内部 ESD 保护，烧针脚
+
+但你接的 Arduino 老外设可能是 5V 信号 —— 这就需要"逻辑电平转换器"（一个小芯片把 5V 降到 3.3V 给 Pi）。
+
+铁律：**任何 5V 信号进 Pi GPIO 之前必须先降到 3.3V，否则烧。**
+
+</DeepDive>
+
+### 接线前必念 3 条铁律
+
+1. **Pi 4 GPIO 最高扛 3.3V** —— 5V 进 GPIO = 烧针脚
+2. **接电路前先断电** —— 哪怕只是 5V，短路打火花会吓你一跳
+3. **GND 必须共连** —— 任何外置电源的 GND 都要拉一根黑线到 Pi 的 GND
+
+<MentalModel
+  name="电路 = 水管系统"
+  points={[
+    "电压（V）= 水压 — 推动力，必须是「两点的差」",
+    "电流（I）= 水流量 — 每秒走多少电荷，由 V/R 决定",
+    "GND（地）= 排水池 — 整条电路约定的「零点」，必须共连",
+    "公式只要记一条：I = V / R",
+    "Pi GPIO 极限：3.3V 输出，单针脚 ≤16mA",
+  ]}
+  visual="/diagrams/voltage-water-pipe.svg"
+  visualAlt="水管类比电路总结图"
+/>
+
+## Try · 动手验证你真懂了
+
+3 道**交错**题（混着考概念）：
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '我想用 Pi GPIO 直接驱动一个小直流电机（150mA），最可能发生什么？',
+      options: [
+        '电机正常转',
+        '电机不转 + 烧 Pi 的 GPIO 针脚',
+        '电机超快转',
+        '电机变成喇叭',
+      ],
+      correct: 1,
+      explain: 'Pi GPIO 单针脚最多 16mA。150mA 直接超载 — 轻则推不动电机，重则烧针脚甚至 Pi。驱动电机必须用 H 桥 / MOSFET 等中间人电路（见 N33）。',
+    },
+    {
+      q: '红色 LED 工作电压 2V。Pi 给 3.3V，目标电流 10mA。该用多大限流电阻？',
+      options: [
+        '50Ω',
+        '130Ω',
+        '470Ω',
+        '不需要电阻',
+      ],
+      correct: 1,
+      explain: '电阻吃掉的电压 = 3.3 − 2 = 1.3V。R = V/I = 1.3 / 0.01 = 130Ω。实际买 220Ω 更安全。',
+    },
+    {
+      q: '我的喇叭模块用 5V 电池单独供电，Pi 的 GPIO 18 信号给到喇叭的 IN 脚。一切看着对，但喇叭一动不动。最优先排查？',
+      options: [
+        'Pi 的 5V 输出电压不够',
+        'Pi 的 GND 跟电池的 GND 是不是连了一根黑线',
+        '换个 GPIO 针脚试试',
+        '重启 Pi',
+      ],
+      correct: 1,
+      explain: '这是发声盒第一坑。两个独立电源系统必须共连 GND，否则信号没有共同参考。',
+    },
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  通过 Feynman 解锁 N05 + N21 + N22 + N33。**没真懂 → 后面只会更卡。**
+</Callout>
+
+<FeynmanPrompt
+  prompt="用水管类比，给一个完全不懂电的朋友讲清楚：什么是电压、电流、地？为什么不接地电路就不工作？为什么 LED 直接接 3.3V 会烧？（90 秒）"
+  scoringRubric={[
+    '✓ 用了水管 / 水池 / 水龙头类比',
+    '✓ 解释了为什么"地"是必需的（参考点 / 回流点）',
+    '✓ 答出"3.3V 烧 LED" 真凶是电流而不是电压',
+    '✗ 没用 V = I × R 公式（用了要解释）',
+  ]}
+  followUps={[
+    {
+      question: '那 Pi 的 5V 和 3.3V 输出针脚有什么区别？什么时候用哪个？',
+      hint: '考点：GPIO 信号是 3.3V，但 Pi 也提供 5V 给外设供电',
+    },
+    {
+      question: '电池为什么有正负极？反着接会怎样？',
+      hint: '考点：电流方向 — 反接对有极性元件的伤害',
+    },
+    {
+      question: '现在已经懂电压电流地了，Pi 的 GPIO 控制 LED 时电怎么流？画一遍',
+      hint: '考点：综合应用 — 在脑子里走完整个电流回路',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 → 解锁 <CrossLink to="n05" relation="下一节">GPIO 是什么</CrossLink> + N21 + N22 + N33。
+
+### 你脑子里现在该有的画面
+
+1. 电路 = 水管：电压（水压）/ 电流（流量）/ 地（排水池）
+2. 电压必须是**两点的差** —— "GPIO 17 是 3.3V"完整意思是"相对 GND 3.3V"
+3. GND 必须共连 —— 拉一根黑线即解决
+4. 烧 LED 的真凶是**电流** —— 没限流电阻 = 电流暴增
+5. Pi 4 GPIO 极限：3.3V，单针脚 16mA
+
+---
+
+**JARVIS Note**:
+> *"Sir, 99% 的'我的电路怎么不工作'问题，根因都是三件事之一：电压不对、地没共连、电流超载。每次接线之前心里默念一遍这三条，能省你下半辈子的调试时间。"*

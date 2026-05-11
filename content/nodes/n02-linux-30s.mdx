@@ -1,0 +1,258 @@
+---
+id: n02
+slug: linux-30s
+title: Linux 30 秒认知
+phase: 1
+phase_name: 心智模型
+project: soundbox
+order: 2
+duration: 5
+difficulty: 1
+depends_on: []
+unlocks: [n03, n08, n09]
+tags: [fundamentals, linux, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次 SSH 进 Pi">
+
+烧好 SD 卡，把它插进 Pi，通电。你的 Mac 终端里敲：
+
+```bash
+ssh pi@raspberrypi.local
+```
+
+输完密码后画面定住一下，然后跳出来：
+
+```
+Linux raspberrypi 6.1.0-rpi8-rpi-v8 ...
+pi@raspberrypi:~ $ _
+```
+
+你心里咯噔一下："这是啥？看着不像我熟悉的 Mac 终端。是不是装错系统了？"
+
+—— **没装错。** 你看到的就是 Linux。读完这一节你会发现：你已经会 90% 了，因为 Mac 跟 Linux 是 Unix 表兄弟。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+你打开 Pi 第一件事，看到的不是熟悉的 macOS，是 **Linux**。
+
+如果你心里发慌"这是啥？我从来没用过"——这一节专治。**Linux 不是另一个外星系统**——它跟 Mac 是亲兄弟（macOS 内核 Darwin 跟 Linux 都来自 Unix 家族），你已经会的 90% 终端操作直接通用。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 朋友问"Linux 跟 Mac/Windows 啥区别"，你能用一段话说清楚 —— 不夹生术语。
+</Callout>
+
+## What · Linux 到底是什么
+
+### 一句话
+
+**Linux = 一个免费、开源的操作系统 ——** 跟 macOS / Windows 是同一类东西，但**没有图形界面也能用**，所以工程师超爱。
+
+### 类比：操作系统就是"车"
+
+<MultiAnalogy
+  concept="操作系统"
+  analogies={[
+    {
+      angle: "Windows",
+      desc: "日产 Sentra — 大众款，按钮齐全，新手友好，但你改不了引擎",
+      strength: "兼容性 + 桌面办公霸主"
+    },
+    {
+      angle: "macOS",
+      desc: "丰田凯美瑞 — 同样大众友好，但跟苹果硬件深度绑定",
+      strength: "稳定 + 创意工作者首选"
+    },
+    {
+      angle: "Linux",
+      desc: "一台开源的乐高汽车 — 引擎、车轮、座椅都能换",
+      strength: "灵活 + 服务器 / 嵌入式 / Pi 的标准"
+    },
+  ]}
+/>
+
+**关键洞察：** macOS 的内核（Darwin）跟 Linux 都是从 Unix 来的 —— 所以你在 Mac 终端学的 `cd` / `ls` / `cat` 这些命令，**99% 在 Pi 的 Linux 上一字不改能用**。学 Linux 等于免费扩展你已有的 Mac 知识。
+
+<Misconception
+  myth="Linux 是另一个外星系统，得花几个月重新学一遍"
+  truth="Linux 和 macOS 都是 Unix 后代 — 90% 的终端命令通用。你已经会大半了，自己不知道而已。"
+  why="macOS 内核 Darwin 是 Unix 一脉，Linux 是 90 年代复刻 Unix 接口的开源版。两者共享 POSIX 标准 —— 文件系统、命令行工具、shell 脚本几乎一模一样。Mac 用户上手 Pi 的曲线远低于 Windows 用户。"
+/>
+
+### Linux 的几个真相
+
+**1. Linux 有几百个"发行版"**
+所谓 Ubuntu、Debian、Raspberry Pi OS、Arch、CentOS …… 这些都是**基于 Linux 内核 + 不同的预装软件**组装的。可以理解成：Linux 内核 = 引擎，发行版 = 不同品牌的车。
+
+你的 Pi 跑的是 **Raspberry Pi OS**（以前叫 Raspbian），它基于 Debian，是给树莓派优化过的。
+
+**2. 你已经天天在用 Linux**
+- 手机里 Android 的内核 = Linux
+- 看的 Netflix / 用的 ChatGPT / 看的微博 —— 后面跑的服务器**几乎全部**是 Linux
+- 路由器、智能电视、车载系统 —— 大多 Linux
+
+你只是没意识到。
+
+**3. "没有图形界面也能用"是 Linux 的超能力**
+Pi 接显示器有桌面（跟 Mac 类似），但你 SSH 远程进去时只有一个**纯文本终端窗口**。这听起来反直觉，其实超高效 —— 你只敲命令、不动鼠标，Pi 在哪里你都能控制（即使它在另一个房间）。
+
+发声盒做完后，你大概率会让 Pi 不接显示器、藏在塑料盒里 —— 这时候 Linux 的"无屏操作"就是必需品。
+
+<PredictThenReveal
+  question="打开 Mac 终端敲 `uname` 回车 — 输出是什么？"
+  hint="想想 Darwin / Linux 的关系。uname 显示内核名字。"
+  answer="`Darwin`。这是 macOS 的 Unix 内核名。在 Pi 上敲同样的命令输出 `Linux`。这就是两个系统在你眼里唯一肉眼可见的差别 —— 其他操作几乎相同。"
+/>
+
+### 跟 Mac 终端的对比
+
+打开你的 Mac 终端（按 ⌘+空格 输 "Terminal" 回车），敲：
+
+```bash
+ls -la ~
+```
+
+会列出你 Home 目录的所有文件。在 Pi 的 Linux 上敲**完全一样的命令**，得到完全一样的格式输出。
+
+**你已经会 Linux 了，只是你不知道而已。**
+
+### 一张图看懂
+
+<ConceptDiagram
+  src="/diagrams/linux-vs-mac.svg"
+  alt="Linux 跟 macOS 是 Unix 同源 — 终端命令通用"
+  caption="Linux 跟 macOS 都是 Unix 后代，所以你 Mac 上学的命令 Pi 上能直接用"
+/>
+
+<ConceptCheck
+  question="我把 Pi 藏到柜子里、不接显示器键鼠，只用 Mac 远程操作 — 这种用法叫什么？"
+  options={[
+    {
+      text: "Linux 不支持这种用法",
+      correct: false,
+      why: "正相反 — 这是 Linux 最擅长的场景，是它在服务器领域统治的根本原因。",
+    },
+    {
+      text: "SSH（Secure Shell）远程操作 — Linux 的标志性用法",
+      correct: true,
+      why: "Pi 跑 Linux + 联到家里 Wi-Fi → Mac 上一行 ssh pi@raspberrypi.local 就能进。藏起来的 Pi 你照样能控制。这是发声盒最终落地的关键。",
+    },
+    {
+      text: "必须接显示器才能用",
+      correct: false,
+      why: "桌面 OS（Windows 早期版本）才需要。Linux 设计上就支持纯命令行。",
+    },
+    {
+      text: "只有付费版才能做",
+      correct: false,
+      why: "Linux 全部免费开源，SSH 是默认能力。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+打开你 Mac 的终端，跟着敲（这些命令一会儿在 Pi 上一字不差能用）：
+
+```bash
+pwd          # 我现在在哪个文件夹？
+ls           # 这个文件夹里有啥？
+whoami       # 我是谁（用户名）？
+date         # 现在几点？
+uname        # 我跑的操作系统是啥？
+```
+
+最后一条 `uname` 在 Mac 上输出 `Darwin`，在 Pi 的 Linux 上输出 `Linux`。**这就是它们唯一肉眼可见的区别**——其他一切操作几乎相同。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'Linux 是免费的吗？',
+      options: [
+        '不是，要花钱买',
+        '是，开源免费，但商业支持服务（如 Red Hat）要钱',
+        '只对个人免费，公司用要付费',
+        '只在某些国家免费',
+      ],
+      correct: 1,
+      explain: 'Linux 内核和绝大多数发行版（Ubuntu / Debian / Raspberry Pi OS）都是免费的。只有某些"企业版"会卖支持服务（出问题打电话有人理你那种）。',
+    },
+    {
+      q: '我的树莓派跑的具体是什么系统？',
+      options: [
+        '直接就叫 "Linux"',
+        'Ubuntu',
+        'Raspberry Pi OS（基于 Debian Linux）',
+        'macOS Lite',
+      ],
+      correct: 2,
+      explain: 'Pi 官方推荐的系统叫 Raspberry Pi OS，是基于 Debian Linux 的发行版。',
+    },
+    {
+      q: '我在 Mac 终端学的 cd / ls / cat 命令，到了 Pi 上能用吗？',
+      options: [
+        '不能，要重学',
+        '能，几乎一字不差',
+        '只能用一半',
+        '能，但要加前缀 `linux-`',
+      ],
+      correct: 1,
+      explain: '这正是 Mac 用户学 Pi 的最大优势 — 终端命令几乎完全通用。这也是为什么 N03 我们直接在你 Mac 上练习。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="Linux = Unix 表兄弟 + 免费 + 可无屏"
+  points={[
+    "Linux 是操作系统，跟 macOS 是 Unix 后代（不是同一个，是表亲）",
+    "Pi 上跑的具体叫 Raspberry Pi OS（基于 Debian 的 Linux 发行版）",
+    "Mac 终端学过的命令 → Pi 上一字不差能用（你已经会 90%）",
+    "无屏 + SSH 是 Linux 的超能力 → 发声盒最终能藏起来",
+    "全免费、可改，所以工程师 + 服务器 + 嵌入式都选 Linux",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  通过 Feynman 解锁 N03（命令行五个命令）+ N08（SD 卡烧录系统）+ N09（首次 SSH 连接）。
+</Callout>
+
+<FeynmanPrompt
+  prompt="请用最简单的话，解释给一个完全不懂电脑的人：什么是 Linux？爸爸的 Mac 是 Linux 吗？树莓派为什么要用 Linux 不用 Windows？（30-60 秒）"
+  scoringRubric={[
+    '✓ 说清了 Linux 是一种"操作系统"（用过比喻：就像不同品牌的车 / 房子等）',
+    '✓ 解释了"免费 + 开源"的意义（不用花钱、能改）',
+    '✗ 没把 Linux 跟 macOS 混淆（它们不是同一个东西，是亲戚）',
+    '✓ 给出了 Pi 用 Linux 的至少一个理由（小 / 免费 / 可以无屏运行）',
+  ]}
+  followUps={[
+    {
+      question: '我手机上没装 Linux 啊，你说手机里也是 Linux 啥意思？',
+      hint: '考点：理解 Android 内核 = Linux，但用户感知不到',
+    },
+    {
+      question: '那 Pi 不接屏幕怎么用啊？没东西看怎么操作？',
+      hint: '考点：理解 SSH / 远程命令行 — Linux 的核心使用方式',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 → 解锁 <CrossLink to="n03" relation="下一节">命令行五个命令</CrossLink> + N08 + N09。
+
+按 learning_path 接着学 N03，你会在 **Mac 终端**里把那 5 个最常用命令练熟。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 39 岁第一次接触 Linux 的人最大的心理障碍是'听起来好难'。但本质上 —— 它就是个能用命令行操作的 macOS 表兄弟。你已经会 90% 了。"*

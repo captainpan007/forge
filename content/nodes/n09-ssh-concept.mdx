@@ -1,0 +1,250 @@
+---
+id: n09
+slug: ssh-concept
+title: SSH 是什么
+phase: 2
+phase_name: 第一次握手
+project: soundbox
+order: 9
+duration: 10
+difficulty: 2
+depends_on: [n02, n03]
+unlocks: [n10]
+tags: [linux, networking, ssh, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="Pi 藏到了柜子里">
+
+发声盒最终要给儿子用：**Pi 得藏在玩具盒里，看不见、摸不着、不接显示器键盘**。
+
+那你怎么调试？怎么改代码？怎么看错误？
+
+—— 答案就是 **SSH**。一行命令从你 Mac 远程进 Pi，跟坐在它面前一样能敲命令、改文件、装软件。
+
+10 分钟看完你就明白：SSH 不是什么黑科技，**就是给两台电脑之间架一条加密的"键盘+屏幕电缆"**。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒做完后 Pi 藏起来 → 你必须 SSH 远程操作。
+
+但 SSH 不只是给嵌入式玩的 —— **服务器运维、云开发、远程协作全部依赖 SSH**。你学会这个能力，不只为发声盒，是为未来 10 年所有"连远程机器"的场景。
+
+10 分钟概念，N10 真上手敲。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 你能用一句话向朋友解释 SSH 是什么、为什么它不会被中间人偷看、密码 vs 密钥的区别。
+</Callout>
+
+## What · SSH 一句话
+
+**SSH = Secure SHell**。一种让你**从 A 机器远程操作 B 机器命令行**的协议，全程加密。
+
+### 多角度类比
+
+<MultiAnalogy
+  concept="SSH"
+  analogies={[
+    {
+      angle: "远程键盘+屏幕电缆",
+      desc: "想象你拉一根很长的 USB 线 + 屏幕线从 Mac 接到 Pi — 你敲键盘 Pi 收到，Pi 输出文字你能看见。SSH 把这根'电缆'变成了网络包。",
+      strength: "操作直觉 — 远程键鼠"
+    },
+    {
+      angle: "电话",
+      desc: "你打电话给 Pi，对方接起，你说一句它执行一句，它说一句你听一句。挂电话前一直双向通话。",
+      strength: "双向通信 + 会话感"
+    },
+    {
+      angle: "加密版 Telnet",
+      desc: "Telnet 是 SSH 的老祖宗（明文传输）。SSH 在 Telnet 基础上加了加密 — 中间人偷看到的是乱码。",
+      strength: "强调'安全'是 SSH 的核心创新"
+    },
+  ]}
+/>
+
+### 一行命令长这样
+
+```bash
+ssh pi@raspberrypi.local
+```
+
+拆开看：
+- `ssh` — 命令名
+- `pi` — 在 Pi 上的用户名（你烧卡时设的）
+- `@raspberrypi.local` — Pi 的"网络地址"（hostname，烧卡时设的）
+
+按回车 → 输密码 → 进 Pi。**就这么简单。**
+
+### "网络上的人看不见我打的字吗？"
+
+看不见。SSH 在 1995 年发明，**核心创新就是端到端加密**：
+
+```
+你 Mac 上敲: "ls -la"
+        ↓
+     加密
+        ↓
+WiFi 路由器 → 互联网 → Pi 的网卡
+   (看到的是乱码)
+        ↓
+     解密
+        ↓
+Pi 收到: "ls -la"
+```
+
+即使有人在中间监听你的 WiFi 流量，截到的也是加密后的乱码。
+
+<Misconception
+  myth="SSH 跟 HTTPS 一样吧？都是加密 — 没啥特别的"
+  truth="SSH 跟 HTTPS 用相似的加密技术（TLS / SSL 系），但用途完全不同：HTTPS 是浏览器看网页，SSH 是远程敲命令。"
+  why="HTTPS 你打开 banking.com 用，浏览器到银行服务器之间加密页面内容。SSH 是你跟远程机器之间架一个'交互终端'，你能敲任意命令、看实时输出。两者底层加密类似，应用层完全不同。"
+/>
+
+### 密码 vs 密钥（基本概念）
+
+**密码登录**（你烧卡设的方式）：每次 ssh 都让你输密码。
+
+```bash
+ssh pi@raspberrypi.local
+pi@raspberrypi.local's password: ▮▮▮▮▮▮▮
+```
+
+**密钥登录**（v0.4 进阶节点会讲）：你生成一对密钥（公钥 + 私钥），把公钥放 Pi 上，以后 ssh 不用输密码 —— 直接进。
+
+```bash
+# 密钥配置好后：
+ssh pi@raspberrypi.local
+# (直接进，不问密码)
+```
+
+**为什么密钥更好：**
+- 不用记密码 / 不会因为输错被锁
+- 公钥可以公开放 GitHub，私钥永远不出你 Mac
+- 暴力破解几乎不可能（密钥长度远超密码）
+
+**现在 N10 用密码就够。** 密钥后面再学。
+
+<PredictThenReveal
+  question="如果有人黑进我的 WiFi 路由器，看着我所有流量 — 他能从我 ssh 进 Pi 的过程中偷到我的密码吗？"
+  hint="想想 SSH 端到端加密的意义。"
+  answer="偷不到。SSH 在你输密码之前就已经跟 Pi 协商好加密通道。密码本身是加密后传输的，路由器只看到一串乱码。这就是 SSH 比 Telnet（80 年代古早版）安全的地方 — Telnet 明文传密码，你的密码在网络上裸奔。"
+/>
+
+<ConceptCheck
+  question="Pi 藏在客厅柜子里，我在卧室用 Mac SSH 进去 — 这中间数据怎么走？"
+  options={[
+    {
+      text: "Mac 直接通过空气信号给 Pi 发命令",
+      correct: false,
+      why: "蓝牙都不行那么远 — SSH 是走 IP 网络，不是物理信号。",
+    },
+    {
+      text: "Mac → 家里路由器 → Pi（都在同一局域网，不出家门）",
+      correct: true,
+      why: "对。Mac 和 Pi 都连家里 WiFi，包就走路由器中转。'raspberrypi.local' 是 mDNS 协议帮你在局域网里找到 Pi 的 IP。",
+    },
+    {
+      text: "Mac → 互联网 → Pi",
+      correct: false,
+      why: "如果你 Mac 和 Pi 在同一 WiFi 网，包不会绕到外网 — 路由器直接转发。除非 Pi 在其他地方（比如云服务器），才走外网。",
+    },
+    {
+      text: "Mac 给 Pi 发短信",
+      correct: false,
+      why: "🙂",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+不需要硬件 —— 概念题。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'SSH 全称是什么？',
+      options: [
+        'Super Secret Hack',
+        'Secure Shell',
+        'System Shutdown Helper',
+        'Standard Service Handler',
+      ],
+      correct: 1,
+      explain: 'Secure Shell — 1995 年出现的远程命令行协议，核心是端到端加密。',
+    },
+    {
+      q: '我不接 Pi 的显示器键盘，只用 Mac 远程操作 Pi — 这种工作方式叫？',
+      options: [
+        'Headless（无头）— Linux 嵌入式标配',
+        'Bluetooth Pair',
+        'Pi Sharing',
+        'iCloud',
+      ],
+      correct: 0,
+      explain: 'Headless = 不接显示器键鼠，纯靠 SSH 远程操作。这是 Pi 在生产部署里的标配模式 — 发声盒最终就这样工作。',
+    },
+    {
+      q: '我在咖啡店用公共 WiFi SSH 进 Pi — 安全吗？',
+      options: [
+        '危险 — 公共 WiFi 任何人都能看我打的字',
+        '安全 — SSH 端到端加密，即使有人监听 WiFi，看到的也是乱码',
+        '只要密码强就安全',
+        '咖啡店 WiFi 不能 SSH',
+      ],
+      correct: 1,
+      explain: '这是 SSH 最大的价值之一 — 你不需要信任中间网络。哪怕走最 sketchy 的公共 WiFi，你的命令和密码都是加密的。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="SSH = 加密版的远程键盘+屏幕"
+  points={[
+    "SSH 让你从 A 机器远程操作 B 机器的命令行",
+    "全程加密 — 即使路由器被劫持，看到的是乱码",
+    "命令格式：ssh 用户名@地址（如 ssh pi@raspberrypi.local）",
+    "现在用密码登录就够，进阶后用密钥（更安全 + 不用输）",
+    "Headless = 不接显示器键鼠，纯 SSH 操作 — 嵌入式标配",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给一个不懂电脑的朋友解释：什么是 SSH？为什么它'安全'？为什么 Pi 必须用 SSH 而不能像手机一样语音控制？（60 秒）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（远程键盘 / 电话 等）',
+    '✓ 解释了"加密"防偷看的意义',
+    '✓ 提到为什么 Pi 不用其他方式（无屏 + 命令行 + 编程访问）',
+    '✗ 没用未解释的术语（"协议"、"端到端"等若用要先翻译）',
+  ]}
+  followUps={[
+    {
+      question: '如果我家路由器被黑了，SSH 还安全吗？',
+      hint: '考点：端到端加密 — 中间人攻击防护',
+    },
+    {
+      question: 'TeamViewer 跟 SSH 是一回事吗？',
+      hint: 'TeamViewer 是远程桌面（图形界面），SSH 是远程命令行 — 都加密',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 → 解锁 <CrossLink to="n10" relation="下一节">第一次 SSH 进 Pi</CrossLink>。
+
+N10 我们真的用 Mac 敲一行命令，进你的 Pi。激动时刻：**第一次跟你儿子的发声盒"打招呼"**。
+
+---
+
+**JARVIS Note**:
+> *"Sir, SSH 是嵌入式工程师每天都在用的工具 —— 不夸张地说，你每开一个新项目第一件事就是 ssh 进去。学会它，等于学会了一个未来 10 年都不会过时的核心能力。"*

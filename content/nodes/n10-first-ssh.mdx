@@ -1,0 +1,273 @@
+---
+id: n10
+slug: first-ssh
+title: 第一次 SSH 进 Pi
+phase: 2
+phase_name: 第一次握手
+project: soundbox
+order: 10
+duration: 20
+difficulty: 2
+depends_on: [n08, n09]
+unlocks: [n11, n12]
+tags: [linux, networking, ssh, hands-on]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次跟 Pi 打招呼">
+
+SD 卡烧好了 (N08)，SSH 概念懂了 (N09)。**现在是发声盒项目的「第一次握手」时刻**。
+
+20 分钟后你会看到 Mac 终端跳出：
+
+```
+pi@raspberrypi:~ $ _
+```
+
+**那一瞬间你才真的"拥有"了 Pi。** 之前它只是块电路板，从这一刻起它是你的小电脑。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+这是发声盒项目的**第一次真实成就**。前 9 节全是认知和准备，这一节你能拿到具体可见的成果：一个能远程操作的、属于你的迷你 Linux 服务器。
+
+后面所有的硬件操作、代码部署、调试、装软件 —— 全部从这里开始。**SSH 通了 = 后面 20 节畅通无阻；SSH 不通 = 后面寸步难行。**
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 任何时候只要 Pi 通电 + 连家里 WiFi，你在 Mac 终端敲一行命令就能进它。
+</Callout>
+
+## What · 5 步真上手
+
+### 准备清单
+
+- ✅ Pi 4 一块
+- ✅ 烧好系统的 microSD 卡（N08 完成的）
+- ✅ Pi 电源（USB-C 5V/3A 官方电源）
+- ✅ 你的 Mac，连着家里 WiFi
+- ✅ Pi Imager 的 ⚙ 高级设置里 SSH 已开 + WiFi 已配（关键）
+
+⚠ 如果 N08 跳过了 ⚙ 设置，先回去重烧一次。**别在这里折腾**。
+
+<AssemblyStepper
+  intro="第一次 SSH 进 Pi 的 5 步骤"
+  steps={[
+    {
+      title: "插 SD 卡 + 通电",
+      visual: "/diagrams/cg-step-1.svg",
+      description: <>把烧好的 microSD 卡插进 Pi 背面的卡槽（金属触点朝上）。然后插 USB-C 电源。<br/>Pi 红灯应该常亮（电源 OK），绿灯偶尔闪烁（在读 SD 卡）。<br/><strong>耐心等 90 秒</strong>—— 第一次启动 Pi 要展开文件系统 + 连 WiFi，比平时慢。</>,
+      newComponent: "通电 + 等待启动"
+    },
+    {
+      title: "打开 Mac 终端",
+      visual: "/diagrams/cg-step-2.svg",
+      description: <>⌘ + 空格 → 输 "Terminal" → 回车。或者打开 iTerm2 / Warp 都行。<br/>看到 <code>$</code> 提示符即可，下一步要敲命令。</>,
+      newComponent: "Mac 终端窗口"
+    },
+    {
+      title: "敲一行 ssh 命令",
+      visual: "/diagrams/cg-step-3.svg",
+      description: <>在终端里完整敲：<br/><code>ssh pi@raspberrypi.local</code><br/>回车。第一次连会问 "Are you sure you want to continue connecting (yes/no)?" —— 输 <code>yes</code> 回车。<br/>然后 "pi@raspberrypi.local's password:" —— 输你在 N08 设的密码（屏幕上不会显示，正常的，输完回车）。</>,
+      newComponent: "ssh 命令 + 密码"
+    },
+    {
+      title: "看到 Pi 的提示符",
+      visual: "/diagrams/cg-step-4.svg",
+      description: <>如果一切对，你会看到类似：<br/><code>pi@raspberrypi:~ $ _</code><br/><strong>恭喜你进 Pi 了！</strong> 这个 <code>$</code> 跟 Mac 的 <code>$</code> 长得一样，但你现在敲的命令在 <strong>Pi 上</strong>执行，不是 Mac。</>,
+      newComponent: "Pi 的命令行 shell"
+    },
+    {
+      title: "敲几个命令确认是真的 Pi",
+      visual: "/diagrams/cg-step-1.svg",
+      description: <>敲 <code>uname -a</code> 应该看到 "Linux raspberrypi 6.x ..."。<br/>敲 <code>hostname</code> 看到 "raspberrypi"。<br/>敲 <code>cat /proc/device-tree/model</code> 看到 "Raspberry Pi 4 Model B..."。<br/><strong>三条命令都对 = 你确实坐在 Pi 上了</strong>，不是 Mac。退出时敲 <code>exit</code> 回车。</>,
+      newComponent: "Linux 系统信息确认"
+    },
+  ]}
+/>
+
+<Misconception
+  myth="ssh 进 Pi 等于'连上 Pi'，跟看视频用 Wi-Fi 一回事"
+  truth="ssh 是建立了一个'交互终端会话' — 你敲的每行命令实时跑在 Pi 上，看到的输出来自 Pi。这跟单向看视频完全不同。"
+  why="SSH 会话是双向、有状态的。你 cd 进了 /tmp，下一行 pwd 还是 /tmp（Pi 记着你的状态）。看视频是单向：你点播放、服务器推流，你的状态不在服务器。"
+/>
+
+<PredictThenReveal
+  question="ssh 进 Pi 后，我在 Mac 关掉终端窗口（叉掉）。Pi 上正在跑的 python 程序会怎样？"
+  hint="想想 SSH 会话和 Pi 程序的关系。"
+  answer="程序也会被杀掉。SSH 会话关闭时，会话里启动的进程默认也会终止。这就是为什么发声盒最终部署时要用 systemd 服务（让程序独立于 SSH 会话），或者 nohup / tmux / screen 等工具（让程序在你断开后继续跑）。这是 N28+ 的内容。"
+/>
+
+## 排错指南（90% 的人会卡的地方）
+
+### "Could not resolve hostname raspberrypi.local"
+
+Mac 找不到 Pi 的地址。可能原因：
+
+1. **Pi 还没启动好** — 多等 30 秒再试
+2. **WiFi 没连上** — Pi Imager ⚙ 里 WiFi 名/密码填错了。重烧 SD 卡修复。
+3. **mDNS 没工作** — 极少数路由器拦截。改试 `ssh pi@<Pi 的 IP>`，IP 去路由器后台看（找名字含 raspberry 的设备）
+
+### "Permission denied (password)"
+
+密码错了：
+
+1. 你记错了 N08 设的密码（最常见）—— 重烧 SD 卡，这次记笔记
+2. 输的时候多按了空格 —— 重试
+
+### "Connection refused" / 卡 30 秒后报错
+
+SSH 服务没开：
+
+1. N08 ⚙ 里没勾 Enable SSH —— 重烧 SD 卡
+2. Pi 没启动 —— 检查电源指示灯，重新插电
+
+### Pi 红灯都不亮
+
+电源问题：
+
+1. USB-C 线只能传数据不能供电（很多便宜线是这样）—— 换 Pi 官方电源
+2. 电源功率不够（手机充电头大多 5V/1A）—— Pi 4 需要 **5V/3A** 才稳定
+
+<ConceptCheck
+  question="我 ssh 通了 Pi，敲 ls 看到一些文件。然后我把 Pi 拔电源 —— 在我 Mac 终端会看到什么？"
+  options={[
+    {
+      text: "什么都没发生，继续等我敲命令",
+      correct: false,
+      why: "SSH 会检测到对端断开。",
+    },
+    {
+      text: "几秒后 Mac 终端报错 'Connection closed' / 'Broken pipe'",
+      correct: true,
+      why: "对。SSH 用 TCP keepalive 检测对端是否还在，断电后几秒到几十秒内 Mac 这边发现连接失效，提示关闭。Pi 上的进程被强杀。",
+    },
+    {
+      text: "Pi 自动重新启动并保留会话",
+      correct: false,
+      why: "Pi 重启后是新启动 — 之前的 SSH 会话不会自动恢复。需要重新 ssh。",
+    },
+    {
+      text: "Mac 会自动通知我",
+      correct: false,
+      why: "只是终端报错，没有系统通知。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**真做 1 次 SSH** 是这一节的核心练习。完成下面 5 个动作：
+
+```bash
+# 1. SSH 进 Pi
+ssh pi@raspberrypi.local
+# (yes / 密码)
+
+# 2. 看你确实在 Pi 上
+uname -a                        # 应该看到 Linux raspberrypi ...
+hostname                        # raspberrypi
+cat /proc/device-tree/model     # Raspberry Pi 4 Model B...
+
+# 3. 看 Pi 的内存
+free -h                         # 看 RAM 用量
+
+# 4. 看 SD 卡用了多少
+df -h                           # 主分区使用率
+
+# 5. 退出
+exit
+```
+
+跑通这 5 步 = 这一节满分。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '我 ssh pi@raspberrypi.local 卡在 "Are you sure you want to continue connecting" — 我该输什么？',
+      options: [
+        '直接回车',
+        '输 yes 回车',
+        '输 y 回车',
+        '输 ok 回车',
+      ],
+      correct: 1,
+      explain: '必须完整输 "yes"（不接受 y 缩写）。这是 SSH 第一次连陌生主机时的"指纹确认"步骤 — 你确认这是你的 Pi 不是被劫持的山寨。',
+    },
+    {
+      q: '我密码输了三次都不对，Pi 怎么处理？',
+      options: [
+        '直接锁定我的账号',
+        'SSH 客户端断开连接，让我重新 ssh 再试',
+        'Pi 自动关机',
+        '通知 Anthropic',
+      ],
+      correct: 1,
+      explain: 'SSH 默认 3 次密码错就断开，但不锁定账号。你可以立刻重 ssh 再试。生产服务器一般用 fail2ban 等工具暴力次数过多才封 IP — Pi 默认没装。',
+    },
+    {
+      q: '我每次 ssh 都要输密码很烦 — 怎么解决？',
+      options: [
+        '把密码写在桌面便签上',
+        '用 SSH 密钥（公私钥对）— 配好后免密登录',
+        '换个简单密码',
+        '把 SSH 关了',
+      ],
+      correct: 1,
+      explain: '密钥登录是 SSH 进阶玩法 — 生成一对 RSA / ED25519 密钥，公钥放 Pi，私钥留 Mac。之后 ssh 自动用密钥认证不再问密码。N09 提过，进阶节点会详细教。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="第一次 SSH 进 Pi 的固定流程"
+  points={[
+    "Pi 通电 + 等 90 秒 first-boot",
+    "Mac 终端敲 ssh pi@raspberrypi.local",
+    "第一次连：输 yes 接受主机指纹",
+    "输密码（屏幕不显示，正常）",
+    "看到 pi@raspberrypi:~ $ = 进 Pi 了",
+    "敲 exit 退出，回到 Mac 终端",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  通过 Feynman + 真做一次 SSH 实操 → 解锁 N11（apt update）+ N12（nano）。
+</Callout>
+
+<FeynmanPrompt
+  prompt="给一个完全不懂电脑的朋友演示：你 Mac 上敲一行命令 ssh pi@raspberrypi.local，然后画面跳到 Pi 的命令行 — 给他解释这中间发生了什么？（60 秒）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（远程键盘 / 跨房间对讲 等）',
+    '✓ 解释了为什么有"输入密码"步骤',
+    '✓ 提到加密 / 安全（不至于在公共 WiFi 暴露）',
+    '✗ 没用未解释的术语（"协议"、"端口"等若用要先翻译）',
+  ]}
+  followUps={[
+    {
+      question: '如果我把 Pi 带到咖啡店连公共 WiFi，还能 ssh 进吗？',
+      hint: '考点：mDNS 在不同网段就失效；可以但要 IP / 端口转发 / VPN',
+    },
+    {
+      question: '为什么连进 Pi 后我敲 ls 看到的不是 Mac 上的文件？',
+      hint: '考点：SSH 把你的命令送到 Pi 上执行，文件来自 Pi 的磁盘',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ 真 SSH 通了 + Feynman 通过 → 解锁 <CrossLink to="n11" relation="下一节">apt update / upgrade</CrossLink> + N12（nano）。
+
+下一节 N11 我们要让你装第一个软件到 Pi 上 —— 这是真正"驾驭" Pi 的开始。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 第一次 SSH 成功的瞬间是嵌入式之旅的'成人礼'。从这一秒起你不再是被动看教程的人，你能给 Pi 下任何指令。下一秒发声盒就在你手里——只是它还不知道。"*

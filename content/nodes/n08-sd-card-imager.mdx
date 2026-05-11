@@ -1,0 +1,238 @@
+---
+id: n08
+slug: sd-card-imager
+title: SD 卡烧录系统
+phase: 2
+phase_name: 第一次握手
+project: soundbox
+order: 8
+duration: 20
+difficulty: 2
+depends_on: [n02]
+unlocks: [n10]
+tags: [setup, raspberry-pi]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="开箱后第一难关">
+
+Pi 4 拿到了。打开包装一看 —— **里面没硬盘**。你心里咯噔："那系统装哪儿？"
+
+翻包装，发现一张指甲盖大的塑料卡片，写着 "microSD 32GB"。教程说"把这张卡变成 Pi 的'硬盘'"。
+
+20 分钟后，你的 Pi 第一次能开机了 —— **关键在于一个免费工具，叫 Raspberry Pi Imager**。这一节教你 5 步搞定。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+Pi 4 **没有内置硬盘**。它的"硬盘"就是你塞进去的那张 microSD 卡。这张卡上必须有一套完整的操作系统（Raspberry Pi OS），Pi 通电才能启动。
+
+把系统"装"进 SD 卡的过程叫**烧录**（imaging / flashing）。Pi 官方做了一个超友好的工具 —— **Raspberry Pi Imager** —— 一键搞定。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 拿到任何一张 microSD 卡，20 分钟变成 Pi 可启动的系统盘，里面预设好你的 WiFi 密码和 SSH 开关。
+</Callout>
+
+## What · 5 步完成烧录
+
+### 步骤 1：下载 Raspberry Pi Imager
+
+去官网下载（Mac / Win / Linux 都有）：
+
+```
+https://www.raspberrypi.com/software/
+```
+
+Mac 双击 `.dmg` 拖到 Applications 即可。100MB 左右，国内代理快的话 1 分钟下完。
+
+<Misconception
+  myth="烧录系统得用 BalenaEtcher / Win32DiskImager 这种第三方工具，操作很复杂"
+  truth="Pi 官方的 Imager 工具 5 步搞定，还能预配 WiFi 密码 + SSH 开关。其他工具都是给老 Pi 用户备用的。"
+  why="Pi Imager 2020 后是官方推荐 + 主推工具。它内嵌操作系统选择列表 + 自动下载 + 预设网络配置，第一次烧 Pi 不要折腾别的。"
+/>
+
+### 步骤 2：插 microSD 卡
+
+把 32GB（或更大）的 microSD 卡用读卡器插到你 Mac 上。如果 Mac 没 SD 卡槽，需要一个 USB-A / USB-C 读卡器（套件里通常带一个，淘宝 20 元）。
+
+⚠ **卡里数据会全部抹掉。** 提前确认这张卡里没有重要文件。
+
+### 步骤 3：打开 Imager 选三件事
+
+Imager 主界面有 3 个大按钮：
+
+```
+┌─────────────────┬─────────────────┬─────────────────┐
+│  CHOOSE DEVICE  │  CHOOSE OS      │  CHOOSE STORAGE │
+└─────────────────┴─────────────────┴─────────────────┘
+```
+
+**按顺序点：**
+
+1. **CHOOSE DEVICE** → 选 **Raspberry Pi 4**
+2. **CHOOSE OS** → 选 **Raspberry Pi OS (64-bit)**（推荐 Pi 4，性能更好）
+3. **CHOOSE STORAGE** → 选你插进去的那张 microSD（认错盘可能毁掉硬盘上的数据，**一定看清楚是 32GB 那张**）
+
+<PredictThenReveal
+  question="如果 CHOOSE STORAGE 里我手抖选了我 Mac 的内置 1TB SSD，点 WRITE 会发生什么？"
+  hint="Imager 是把镜像直接写进选中的盘，不管那盘原来是什么..."
+  answer="毁掉你 Mac。Imager 不识别盘是不是系统盘，它会把 Raspberry Pi OS 镜像直接写进去 —— 你 Mac 上的所有数据会被覆盖、系统无法启动。所以选 STORAGE 时一定看容量（microSD 32GB ≠ 1TB SSD），看清楚再点。"
+/>
+
+### 步骤 4：⚙ 高级设置（这一步决定你不用接显示器）
+
+点 WRITE 之前，**先点右下角齿轮 ⚙**（或按 `⌘ + Shift + X`）打开高级设置：
+
+```
+☑ Set hostname:        raspberrypi.local
+☑ Enable SSH:          [Use password authentication]
+   ─ Username:         pi
+   ─ Password:         (你自己设一个，记住)
+☑ Configure wireless LAN:
+   ─ SSID:             (你家 WiFi 名)
+   ─ Password:         (你家 WiFi 密码)
+   ─ Wireless country: CN
+☑ Set locale settings:
+   ─ Timezone:         Asia/Shanghai
+   ─ Keyboard layout:  us
+```
+
+<Callout type="warning" icon="🔥">
+  **这一步是关键中的关键。** 如果跳过，烧好的 Pi 第一次开机时找不到 WiFi、SSH 也关着 —— 你必须临时找显示器键盘配置。**勾上 SSH + 填好 WiFi，Pi 开机自动联网 + 自动开 SSH，你直接 Mac 远程进去。**
+</Callout>
+
+### 步骤 5：WRITE → 等 10-15 分钟
+
+回主界面点 **WRITE**。Imager 会：
+
+1. 从官网下载 Raspberry Pi OS 镜像（约 1GB，第一次烧需要联网）
+2. 把镜像写入 SD 卡（5-10 分钟）
+3. 验证写入完整（再 5 分钟）
+
+显示 ✅ "Write Successful" 后，卡能直接拔（Imager 已经卸载它了）。
+
+<ConceptCheck
+  question="烧好 SD 卡，插进 Pi 通电 — 第一次开机大约要多久才能 SSH 进去？"
+  options={[
+    {
+      text: "立刻 — 通电即可 SSH",
+      correct: false,
+      why: "Pi 开机需要时间初始化 OS、连 WiFi、启动 SSH 服务。",
+    },
+    {
+      text: "30-90 秒 — 第一次开机会扩展文件系统 + 连 WiFi，比平时慢",
+      correct: true,
+      why: "对。第一次开机 Pi 要做 first-boot 配置（重设密码、扩展文件系统、连 WiFi）。耐心等 1 分半钟。后面每次开机大约 30 秒。",
+    },
+    {
+      text: "10 分钟",
+      correct: false,
+      why: "正常 Pi 4 启动远不需要这么久。如果超过 5 分钟还连不上，可能是 WiFi 没配对 / 灯不亮则是供电问题。",
+    },
+    {
+      text: "得插显示器才能进系统",
+      correct: false,
+      why: "前提是你按步骤 4 勾了 SSH + 配了 WiFi。这就是高级设置那一步的价值。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**真做一次**（这一节就是动手节）：
+
+1. 下载 Pi Imager → 装好
+2. 找一张 32GB microSD + 读卡器
+3. Imager → CHOOSE DEVICE: Pi 4 → CHOOSE OS: Raspberry Pi OS 64-bit → CHOOSE STORAGE: 你的 SD
+4. ⚙ 高级设置：勾 SSH（用密码登录）+ 填 WiFi（你家 SSID + 密码）+ Pi 用户名/密码
+5. WRITE → 等完成
+6. 拔卡 → 插 Pi → 通电
+
+**Pi 红灯常亮 + 绿灯偶尔闪烁就是正常启动状态。**
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '我跳过了 ⚙ 高级设置，烧好卡通电启动 — 然后我用 Mac 敲 ssh pi@raspberrypi.local，会发生什么？',
+      options: [
+        '正常进 Pi',
+        '连接超时 — SSH 没开 + WiFi 没配，Pi 联不上网',
+        'Pi 会发邮件告诉我密码',
+        '电脑自动接管 Pi',
+      ],
+      correct: 1,
+      explain: 'SSH 默认关闭（Pi 安全考虑）+ WiFi 默认不配。跳过 ⚙ 你必须额外搞键盘鼠标显示器接 Pi 上手动设置 — 自找麻烦。',
+    },
+    {
+      q: '为什么 Pi 4 推荐选 64-bit 不是 32-bit OS？',
+      options: [
+        '64-bit 唯一支持 Pi 4',
+        'Pi 4 CPU 是 64-bit 架构，64-bit OS 能完整利用性能；32-bit 是给老 Pi 3 兼容用的',
+        '64-bit 占用磁盘空间更小',
+        '没区别，随便选',
+      ],
+      correct: 1,
+      explain: 'Pi 4 / Pi 5 都是 ARM Cortex-A72 / A76（64-bit）。装 32-bit OS 浪费一半的指令集能力。Pi 3 及之前 CPU 是 32-bit，那时候必须 32-bit OS。',
+    },
+    {
+      q: '烧录失败怎么办（写到一半提示出错）？',
+      options: [
+        '换张卡 — SD 卡有寿命，旧卡可能写坏了',
+        '把 Pi 砸了',
+        '重启 Mac',
+        '改名重试',
+      ],
+      correct: 0,
+      explain: 'microSD 卡擦写次数有限（典型 10 万次）。山寨卡 / 用了几年的旧卡是烧录失败 No.1 原因。买个新的官方 SanDisk 32GB（淘宝 30 元）几乎一定成功。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="SD 卡 = Pi 的「硬盘」+ 出厂配置"
+  points={[
+    "Pi 4 自身没硬盘 — 启动盘就是 microSD 卡",
+    "烧录工具 = Pi Imager 官方（不要用别的）",
+    "5 步：装 Imager → 选设备 → 选 OS（64-bit）→ 选 SD → 写入",
+    "⚙ 高级设置 = 出厂预配 WiFi + SSH — 跳过 = 自找麻烦",
+    "烧失败先怀疑 SD 卡，不是 Pi",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给一个完全不懂 Pi 的朋友解释：为什么 Pi 没有硬盘？SD 卡为什么要'烧录'？跟 U 盘装系统是一回事吗？（60 秒）"
+  scoringRubric={[
+    '✓ 解释了"Pi 没硬盘 → SD 卡当硬盘"',
+    '✓ 用"装系统进卡片"这种生活类比',
+    '✓ 提到 SSH + WiFi 预配的意义',
+    '✗ 没用未解释的术语（"烧录"、"镜像"、"flashing"等若用要先翻译）',
+  ]}
+  followUps={[
+    {
+      question: '那 U 盘可以代替 SD 卡当 Pi 的硬盘吗？',
+      hint: 'Pi 4+ 支持从 USB 启动，但 microSD 槽是默认 / 最简单的方式',
+    },
+    {
+      question: '为什么 Pi Imager 比 BalenaEtcher 简单？',
+      hint: '官方维护 + 预配 WiFi/SSH 是 Imager 独家',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + SD 卡烧好 + 插进 Pi 通电 → 解锁 <CrossLink to="n09" relation="下一节">SSH 是什么</CrossLink>。
+
+下一节 N09 我们讲清楚 SSH 的原理（30 秒讲完，简单到你拍大腿），然后 N10 我们真的用 Mac 敲一行命令进 Pi。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 我见过 90% 的 Pi 新手卡在两件事：（1）烧录跳过 ⚙ 高级设置 → 第一次开机连不上；（2）用旧 SD 卡 → 烧到一半失败误以为 Pi 坏了。前者读完这节解决，后者花 30 块买张新卡解决。"*
