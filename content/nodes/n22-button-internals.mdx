@@ -1,0 +1,239 @@
+---
+id: n22
+slug: button-internals
+title: 大按钮的内部结构
+phase: 4
+phase_name: 硬件实操
+project: soundbox
+order: 22
+duration: 10
+difficulty: 1
+depends_on: [n04]
+unlocks: [n24]
+tags: [electronics, hardware]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="4 个针脚的困惑">
+
+你套件里那个大蘑菇按钮（直径 6cm+ 那个）—— **翻过来看背面，4 个金属针脚**。
+
+教程让你"接按钮的两端"。**4 个里哪两个？随便接两个？**
+
+10 分钟读完你会知道这 4 个针脚的真相 —— NO / NC / COM —— 以及为什么发声盒只需要 2 个针脚就够。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒按钮接错 = 按了没反应 / 一直触发。学懂内部结构能 30 秒接对，且能用到其他项目（家用开关、急停按钮、面包板上的 tactile 按钮都是同一原理）。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 拿到任何按钮（大蘑菇 / 急停 / 微动开关），看针脚一眼分出"哪两个是开关触点"。
+</Callout>
+
+## What · 按钮内部就是一对触点
+
+### 简单按钮 vs 复杂按钮
+
+**最简单的按钮**（面包板 tactile 按钮）：4 个针脚，**两两短接**（即 1-2 是一组，3-4 是一组）。按下时两组之间导通。
+
+**大蘑菇按钮**（带 LED 的 6cm 大按钮）：4 个针脚，分两类：
+- **2 个 = 按钮开关触点**（COM + NO 或者 COM + NC）
+- **2 个 = LED 灯触点**（+ 和 -，给按钮自身的指示灯供电）
+
+发声盒**只用开关那 2 个**。LED 那 2 个你接也行不接也行。
+
+### 三个名词：NO / NC / COM
+
+```
+COM (Common 公共端)  ──┬── 按下时连 NO
+                      │
+                      └── 没按时连 NC
+NO  (Normally Open  常开)  → 默认断开，按下闭合
+NC  (Normally Closed 常闭) → 默认闭合，按下断开
+```
+
+**人话翻译：**
+- COM = "中间那根"，永远参与
+- NO（常开）= 平时不通，按下才通 → 发声盒用这个
+- NC（常闭）= 平时通，按下断开 → 急停按钮用这个（断电更安全）
+
+### 一张图
+
+<ConceptDiagram
+  src="/diagrams/button-internals.svg"
+  alt="大按钮内部结构 — COM + NO + NC + LED"
+  caption="按钮背面 4 个针脚的实际接线。COM + NO 给你想要的 '按下导通'"
+/>
+
+<MultiAnalogy
+  concept="按钮内部"
+  analogies={[
+    {
+      angle: "三向开关",
+      desc: "COM = 中间触点，永远在路上；NO = 默认断开的'另一边'，按下接通；NC = 默认接通的'反向'",
+      strength: "数字电路语境"
+    },
+    {
+      angle: "门磁",
+      desc: "门关时 NC（防盗常闭，开门触发警报）；门开时 NO 模式不同 — COM 永远是公共端",
+      strength: "安全场景"
+    },
+  ]}
+/>
+
+<Misconception
+  myth="按钮 4 个针脚都得接"
+  triple="想象 COM + NO 是开关本体的两端；另外两个是给灯的（独立电路）。发声盒只用开关 → 2 根线。"
+  truth="发声盒只需要接 COM + NO 两个针脚。剩下两个（NC + LED）可以完全忽略。"
+  why="复合按钮把开关 + LED 集成在一个壳子里，但内部两个电路完全独立。开关电路 = COM 跟 NO 之间的金属片；LED 电路 = 一个有方向的发光二极管。两组电路共用塑料外壳但电气上互不干扰。"
+/>
+
+### 怎么找哪两根是 COM + NO？
+
+如果按钮没标，用万用表（设到「通断」档/蜂鸣档）：
+
+```
+万用表两根表笔分别接 A / B 针脚
+- 没按时蜂鸣 → A-B 是 NC（默认通）
+- 按下时蜂鸣 → A-B 是 NO（按下通）
+```
+
+或者**没万用表的土法**：
+
+1. 任选 2 个针脚接 LED + 限流电阻 + Pi 3.3V/GND（构成一个测试电路）
+2. 按下按钮 —— LED 亮 = 这俩是 COM + NO
+3. LED 不亮 = 换另外两个针脚
+
+<PredictThenReveal
+  question="我接了 COM + NC（默认闭合），写 Button(17) 默认上拉。没按按钮，is_pressed 返回？"
+  hint="NC 默认闭合 = 按钮一端短到 GND（如果 COM 接 GND）；上拉默认 HIGH = ..."
+  answer="True。NC 默认闭合 = 触点像永远在'按下'状态。上拉假设没按时 GPIO = HIGH，但 NC 让 GPIO 一直被拉到 GND（LOW），gpiozero 把 LOW 解释为 is_pressed = True。你按下按钮反而触点断开，GPIO 回到 HIGH，is_pressed 变 False。逻辑完全反了！发声盒一定要接 NO，不能接 NC。"
+/>
+
+<ConceptCheck
+  question="我接发声盒按钮：COM 接 Pi GND，NO 接 GPIO 17。哪个状态触发 is_pressed = True？"
+  options={[
+    {
+      text: "没按时（默认）",
+      correct: false,
+      why: "NO 默认断开 — GPIO 17 通过 Pi 内部上拉电阻被拉到 3.3V = HIGH = 未按。",
+    },
+    {
+      text: "按下时",
+      correct: true,
+      why: "按下 → NO 跟 COM 接通 → GPIO 17 直接连 GND = LOW = is_pressed True。这就是发声盒正确接法。",
+    },
+    {
+      text: "永远 True",
+      correct: false,
+      why: "NO 默认断开，正常情况下 is_pressed 默认 False。",
+    },
+    {
+      text: "永远 False",
+      correct: false,
+      why: "按下时电路接通，gpiozero 能检测到。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**用万用表找 COM/NO/NC**（套件里通常有）：
+
+1. 万用表设到「通断/蜂鸣」档
+2. 大蘑菇按钮翻底面，任选 2 个针脚接表笔
+3. 慢慢按按钮，**听响声**：
+   - **按下响、松开不响** → 这俩是 COM + NO ✓ 发声盒用
+   - **按下不响、松开响** → 这俩是 COM + NC
+   - **永远不响** → 这俩跟开关无关，可能是 LED 那对
+
+记下 4 个针脚的位置，**贴个小标签**（C/N/L/L 之类）—— 几周后你不一定记得清。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'NO 是什么的缩写？',
+      options: [
+        'No Operation',
+        'Normally Open（常开 — 默认断开，按下闭合）',
+        'Not Online',
+        'Null Output',
+      ],
+      correct: 1,
+      explain: 'NO = Normally Open（常态：断开）。开关业界标准缩写。NC = Normally Closed（常态：闭合）。COM = Common（公共端）。',
+    },
+    {
+      q: '发声盒按钮该接哪两个针脚？',
+      options: [
+        'COM + NC',
+        'COM + NO',
+        '两个 NO 互接',
+        'LED 那两个',
+      ],
+      correct: 1,
+      explain: 'COM + NO 才是"按下才通"的语义，匹配按钮逻辑。COM + NC 是反的（默认通、按下断），逻辑反转。',
+    },
+    {
+      q: '大按钮的 LED 那两针脚不接行不行？',
+      options: [
+        '不行 — Pi 无法识别',
+        '可以 — LED 只是个指示灯，跟开关电路完全独立',
+        '只能接红的不能接绿的',
+        'LED 必须接 5V',
+      ],
+      correct: 1,
+      explain: 'LED 是按钮"自身指示灯" — 一个独立的二极管。不接它按钮开关功能完全不影响。后期想要按钮自己亮（更有玩具感）再接也来得及。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="大蘑菇按钮 4 针脚真相"
+  points={[
+    "2 个针脚 = 开关本体（COM + NO + NC，但通常只用 COM + NO）",
+    "2 个针脚 = LED 指示灯（可选，不接也行）",
+    "COM = 公共端；NO = 常开（按下接通） ⭐ 发声盒用",
+    "NC = 常闭（按下断开） — 急停按钮用，发声盒别用",
+    "没标 = 用万用表的通断档找",
+    "认错针脚最常见的"按钮代码全反" — 5 分钟测一下能省 2 小时调试",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="拿出大蘑菇按钮给儿子看，给他解释：按钮里面是怎么样的？为什么按下灯会亮？4 个针脚都干嘛的？（60 秒）"
+  scoringRubric={[
+    '✓ 用了金属片 / 弹簧 等具体描述',
+    '✓ 区分开关电路 vs LED 电路独立',
+    '✓ NO vs NC 用'按时通'vs'按时断'类比',
+    '✗ 没把按钮神化，说清楚是'两个金属片靠按下接触'',
+  ]}
+  followUps={[
+    {
+      question: '为什么有些按钮 4 个针脚，有些 2 个？',
+      hint: '考点：是否带 LED + 双联触点冗余等',
+    },
+    {
+      question: '按钮按多了会坏吗？',
+      hint: '考点：触点磨损 — 通常 10 万次到 100 万次',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 找出按钮的 COM/NO/NC → 解锁 <CrossLink to="n24" relation="后续">接按钮到 Pi 完整实操</CrossLink>。
+
+按 learning_path 下一节是 <CrossLink to="n23" relation="下一节">杜邦线连接技巧</CrossLink> —— 真接线之前学怎么不让线松动。
+
+---
+
+**JARVIS Note**:
+> *"Sir, '按钮没反应' 是嵌入式新手最沮丧的问题之一。今天你懂了 4 个针脚的真相，下次遇到按钮你能 5 分钟搞定接线，不再凭运气。"*

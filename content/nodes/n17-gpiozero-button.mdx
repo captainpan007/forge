@@ -1,0 +1,316 @@
+---
+id: n17
+slug: gpiozero-button
+title: gpiozero 的 Button 类
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 17
+duration: 15
+difficulty: 3
+depends_on: [n16]
+unlocks: [n18]
+tags: [python, gpio, hardware, hands-on]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="从'推'切到'听'">
+
+N16 你让 Pi 点亮 LED —— **Pi 主动推电压出去**（Output 模式）。
+
+现在反过来：**儿子按按钮 → Pi 听到 → 触发动作**。这是 Input 模式 —— Pi 监听外面给它的电压。
+
+15 分钟你会知道 gpiozero 让这件事简单到不可思议：**3 行代码 + 1 个按钮 + 1 行检测**。然后下一节 N18 我们让按钮按下自动触发动作（事件驱动）。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒的核心是按钮 —— **儿子按下按钮，发声盒响一声**。这一节解决"按下"如何被 Pi 识别。
+
+你会学到 3 种检测按钮的方式，每种适合不同场景：
+
+- `is_pressed`（查询）—— 当前是不是被按着
+- `wait_for_press()`（阻塞等）—— 等到被按下才往下走
+- `when_pressed = func`（事件触发）—— 按下就跑一个函数 ⭐ 发声盒用这个
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 接一个按钮 + 3 行代码，按下打印 "Hello"。后面只要把 print 换成"播音频"就是发声盒了。
+</Callout>
+
+## What · 接按钮 + 三种检测方式
+
+### 准备清单
+
+- ✅ N16 LED 电路已工作（保留，N18 会用）
+- ✅ 1 个按钮（套件里的大蘑菇按钮或随便一个 tactile 按钮）
+- ✅ 2 根杜邦线
+
+### 接线（按钮电路最简单）
+
+```
+按钮一端 ────── GPIO 17（任意 GPIO，咱用 17）
+按钮另一端 ──── Pi GND
+
+按钮 = 一个开关
+- 按下：两端导通 → GPIO 17 跟 GND 相连 → 读到 LOW (0)
+- 松开：两端断开 → GPIO 17 悬空 → gpiozero 用内置上拉电阻拉到 HIGH (3.3V)
+```
+
+<Callout type="info" icon="🧠">
+  **gpiozero 自动处理上拉电阻。** 老教程让你外接 10kΩ 电阻 — 那是给 RPi.GPIO 的玩法。gpiozero 把这个细节封装了，你只接两根线就行。<CrossLink to="n21" relation="后面会展开">N21 详解上拉/下拉电阻原理</CrossLink>。
+</Callout>
+
+<Misconception
+  myth="按钮要接 3.3V + GND 两根线"
+  truth="只要接 GPIO + GND 两根线。gpiozero 自动把 GPIO 配置为'内部上拉 + Input 模式'。"
+  why="按钮就是一个开关 — 没按 = 断路，按了 = 通路。gpiozero 的 Button 类默认配置 GPIO 为「pull-up Input」: 没按时通过 Pi 内部电阻拉到 3.3V，按下时按钮把 GPIO 短到 GND = LOW。你不需要外部电阻或外部 3.3V。"
+/>
+
+### 方式 1：is_pressed（查询当前状态）
+
+```python
+from gpiozero import Button
+import time
+
+button = Button(17)            # BCM 17 = 物理 11 号
+
+# 每秒检查一次
+while True:
+    if button.is_pressed:
+        print("按住了！")
+    else:
+        print("没按")
+    time.sleep(1)
+```
+
+**问题：** 这是「轮询」(polling) 模式 —— Pi 一直忙着检查、CPU 占用高 + 你可能错过短按（按了 0.2 秒、轮询 1 秒发现不了）。
+
+### 方式 2：wait_for_press（阻塞等待）
+
+```python
+from gpiozero import Button
+
+button = Button(17)
+
+print("等你按下...")
+button.wait_for_press()        # 程序停在这一行，直到按下才继续
+print("终于按了！")
+```
+
+**特点：** 简单直观，但只能等**一次**按下。继续等下一次得再调一次 wait_for_press()。
+
+### 方式 3：when_pressed（事件回调）⭐ 发声盒用这个
+
+```python
+from gpiozero import Button
+from signal import pause
+
+button = Button(17)
+
+def on_press():
+    print("按了！")
+
+button.when_pressed = on_press     # 注册回调
+pause()                             # 永远暂停（事件驱动靠这个）
+```
+
+**特点：**
+- 你的"动作"（`on_press`）跟"检测"完全解耦
+- Pi 不忙 CPU，按下时由系统中断触发函数
+- 这就是<CrossLink to="n18" relation="下一节">事件驱动编程</CrossLink>，发声盒终极模式
+
+<PredictThenReveal
+  question="我用 button.is_pressed 在 while True 循环里检测，没加 time.sleep — Pi CPU 占用会怎样？"
+  hint="while True 不停转什么意思？"
+  answer="CPU 占用 100%（单核满载）。while True 不带 sleep 的循环是「忙等待」(busy wait)，CPU 拼命跑空转。Pi 会发烫、耗电、其他程序变慢。永远在轮询循环里 sleep 至少 0.01 秒，或者直接用方式 3 的事件回调（CPU 几乎 0%）。"
+/>
+
+<ConceptCheck
+  question="发声盒最终需求：儿子按按钮 → 立刻播放音频 + 不影响其他程序。3 种检测方式选哪个？"
+  options={[
+    {
+      text: "is_pressed 轮询",
+      correct: false,
+      why: "CPU 占用高、可能错过短按、跟其他逻辑混在一起难管理。",
+    },
+    {
+      text: "wait_for_press()",
+      correct: false,
+      why: "只能等一次，按完就得重新调用。代码结构变成 while True 包一层 → 退化到轮询。",
+    },
+    {
+      text: "when_pressed = play_sound",
+      correct: true,
+      why: "完美匹配。按下时操作系统自动触发 play_sound 函数，其他时间 Pi 几乎不耗 CPU。多个按钮可以各自注册不同回调互不干扰。这就是 N18 事件驱动的雏形。",
+    },
+    {
+      text: "三个都不行",
+      correct: false,
+      why: "方式 3 完全可以，发声盒最终代码就用它。",
+    },
+  ]}
+/>
+
+### 完整示例：按钮 → 控制 LED
+
+把按钮跟 LED 串起来 —— 按下亮、松开灭：
+
+```python
+from gpiozero import LED, Button
+from signal import pause
+
+led = LED(17)            # ⚠ 注意：LED 跟 Button 用不同 GPIO
+button = Button(18)      # 按钮换到 BCM 18
+
+button.when_pressed = led.on    # 按下时让 LED 亮
+button.when_released = led.off  # 松开时让 LED 灭
+
+print("按住按钮 LED 就亮，松开就灭")
+pause()
+```
+
+**5 行核心代码 = 一个完整的按钮-LED 联动**。N17 你脑子里要有这个模型。
+
+### 进阶玩法
+
+```python
+button.hold_time = 2                     # 按住超过 2 秒触发 held 事件
+button.when_held = some_function
+
+button.bounce_time = 0.1                 # 软件去抖 100ms（防按一次触发两次）
+
+button.value                              # 当前值：1 (没按) 或 0 (按了)
+button.active_time                        # 按住多久了（秒）
+```
+
+<Callout type="info" icon="🧠">
+  **机械按钮的抖动 (bounce)**：物理按钮按下瞬间触点会"颤抖"几毫秒，导致一次按下被检测成多次。`bounce_time=0.1` 让 gpiozero 忽略 100ms 内的重复触发。发声盒里**一定要设置 bounce_time**，否则一次按下可能播两次音频。
+</Callout>
+
+## Try · 动手验证你真懂了
+
+**真做一次** 是这一节的核心：
+
+```bash
+# SSH 进 Pi
+ssh pi@raspberrypi.local
+
+# 写代码
+nano button_test.py
+```
+
+粘贴：
+
+```python
+from gpiozero import Button
+from signal import pause
+
+button = Button(17, bounce_time=0.1)
+
+count = 0
+def on_press():
+    global count
+    count += 1
+    print(f"按了第 {count} 次！")
+
+button.when_pressed = on_press
+
+print("等你按按钮... (Ctrl+C 退出)")
+pause()
+```
+
+```bash
+python3 button_test.py
+# 按按钮看输出
+# Ctrl+C 退出
+```
+
+按 5 次 —— 应该看到"按了第 1 次！" 到 "按了第 5 次！"，没有重复。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'gpiozero 的 Button 类默认假设按钮怎么接？',
+      options: [
+        '按钮一端 3.3V，另一端 GPIO（pull-down）',
+        '按钮一端 GND，另一端 GPIO（pull-up，gpiozero 默认）',
+        '只能接 5V',
+        '随便接都行',
+      ],
+      correct: 1,
+      explain: 'gpiozero 默认 pull_up=True，假设按钮一端接 GND。按下 = 拉到 GND = LOW (0)，松开 = 内部电阻拉到 3.3V = HIGH (1)。',
+    },
+    {
+      q: 'button.when_pressed = on_press 这一行做了什么？',
+      options: [
+        '立刻调用 on_press',
+        '把 on_press 注册成"按下事件"的回调，按下时自动执行',
+        '永远禁用 on_press',
+        '改 on_press 的代码',
+      ],
+      correct: 1,
+      explain: 'when_pressed 是事件订阅。你把函数引用赋值给它，gpiozero 在硬件中断里调用这个函数。注意：等号右边是函数名 on_press 而不是 on_press() — 后者是立即调用。',
+    },
+    {
+      q: '为什么 bounce_time=0.1 重要？',
+      options: [
+        '让按钮反应更快',
+        '机械触点抖动会让一次按下触发多次，bounce_time 在 N ms 内只算一次',
+        '没什么用，可有可无',
+        'gpiozero 强制要求',
+      ],
+      correct: 1,
+      explain: '物理按钮抖动是真实问题（弹簧 + 金属触点）。bounce_time 在硬件中断后 N 毫秒内忽略重复触发。发声盒不设 = 按一下可能播两次音频。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="按钮检测的 3 种方式"
+  points={[
+    "Button(17) = 配置 BCM 17 为 Input + 内部上拉",
+    "is_pressed 轮询：简单但费 CPU，可能错过短按",
+    "wait_for_press()：阻塞等一次，简单粗暴",
+    "when_pressed = func：事件驱动，发声盒最佳 ⭐",
+    "永远设 bounce_time=0.1 防机械抖动",
+    "Button(17, bounce_time=0.1) 是发声盒的接线 + 配置模板",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="带儿子看你接好的按钮 — 按一下，屏幕打印一行字。给他解释：什么是按钮？Pi 怎么'知道'你按了？为什么 Pi 不用眼睛也能感觉到？（60 秒）"
+  scoringRubric={[
+    '✓ 用儿童能懂的话（按按钮 = 通电话 / 拉开关 等）',
+    '✓ 解释了 Pi 怎么"感觉"（电压变化）',
+    '✗ 没用未解释的术语（"中断"、"事件"等若用要先翻译）',
+    '✓ 提到 Pi 之后会做的反应（播声音 / 亮灯）',
+  ]}
+  followUps={[
+    {
+      question: '我能接 5 个按钮，按不同按钮播不同声音吗？',
+      hint: '考点：每个按钮独立 GPIO + 独立 when_pressed',
+    },
+    {
+      question: '按按钮的瞬间为什么我代码里要"等待"？',
+      hint: '考点：pause() 阻止程序立刻退出，让事件循环活着',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 真按按钮 print 出来 → 解锁 <CrossLink to="n18" relation="下一节">事件驱动编程</CrossLink>。
+
+N18 我们把今天的按钮回调思路系统化：**「轮询 vs 事件」是嵌入式编程的核心分水岭**。然后 N19 接音频，发声盒主体就成型了。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 你的发声盒现在已经有 input（按钮）和 output（LED 当指示灯）。剩下的就是 output 加上'播音频'，整个项目就活过来了。今天的 5 行代码值得被存档 —— 这是你儿子未来玩具的'生命的第一次心跳'。"*

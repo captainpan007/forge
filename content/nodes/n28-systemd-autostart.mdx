@@ -1,0 +1,352 @@
+---
+id: n28
+slug: systemd-autostart
+title: systemd 自启动
+phase: 5
+phase_name: 给儿子用
+project: soundbox
+order: 28
+duration: 30
+difficulty: 3
+depends_on: [n27]
+unlocks: [n29, n64]
+tags: [linux, systemd, production, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="儿子玩不到的玩具">
+
+发声盒做完了 — 给儿子玩，**他乐了 3 分钟你拔电源充电、再插上**：
+
+```
+按钮按了 — 没反应
+```
+
+为什么？因为你之前是 SSH 进 Pi 手动 `python3 main.py` 跑的。**Pi 重启 = SSH 会话断 = 进程消失**。儿子要玩你又得 SSH 进去手动跑 — **完全不实用**。
+
+30 分钟教你 **systemd** — 让 Pi 通电自动跑 main.py，**永远后台守护，崩了自动重启**。这是嵌入式产品和"玩具实验"的分水岭。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒交付的最低门槛：**儿子按按钮就响 — 爸爸不在旁边也能玩**。
+
+要满足这条 = main.py 必须自动启动 + 崩溃自愈 + 不依赖 SSH 会话。**systemd** 就是 Linux 的"程序总管家" — 几乎所有现代 Linux 服务（包括 Pi 上的 SSH、网络、蓝牙）都靠它管理。
+
+学懂 systemd = 你今后任何 Pi / 服务器项目都能做"长期跑"。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 任何 Python 脚本都能配成"开机自启 + 崩溃重启 + 后台守护"的 systemd 服务。
+</Callout>
+
+## What · systemd 服务文件 3 步搞定
+
+### 步骤 1：写服务定义文件
+
+```bash
+ssh pi@raspberrypi.local
+
+# 用 sudo nano 写到系统目录
+sudo nano /etc/systemd/system/soundbox.service
+```
+
+粘贴：
+
+```ini
+[Unit]
+Description=Soundbox — dad-made toy for son
+After=multi-user.target sound.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/pi/soundbox/main.py
+WorkingDirectory=/home/pi/soundbox
+User=pi
+Group=pi
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Ctrl+O 保存，Ctrl+X 退出。
+
+### 步骤 2：启用 + 启动
+
+```bash
+# 让 systemd 读新文件
+sudo systemctl daemon-reload
+
+# 设为开机自启
+sudo systemctl enable soundbox
+
+# 立刻启动（不用等重启）
+sudo systemctl start soundbox
+
+# 查状态
+sudo systemctl status soundbox
+```
+
+`status` 应该看到：
+
+```
+● soundbox.service - Soundbox — dad-made toy for son
+     Loaded: loaded (/etc/systemd/system/soundbox.service; enabled)
+     Active: active (running) since ...
+   Main PID: 1234 (python3)
+        ...
+```
+
+**绿色 `active (running)`** = 服务在跑。按按钮 — 喇叭响。
+
+### 步骤 3：重启 Pi 验证
+
+```bash
+sudo reboot
+
+# 等 1 分钟 Pi 重新启动
+# 然后给儿子按按钮 — 应该立刻响（不用 SSH）
+
+# 如果你想 SSH 看状态：
+ssh pi@raspberrypi.local
+sudo systemctl status soundbox
+```
+
+**从此 Pi 通电后 60 秒内自动开始响应按钮**。
+
+### service 文件每行讲解
+
+```ini
+[Unit]
+Description=...                # 给人看的描述
+After=multi-user.target sound.target
+# 等系统进入多用户模式 + 音频子系统就绪后再启动
+# 否则 pygame.mixer.init() 可能失败
+
+[Service]
+Type=simple                    # 启动后保持前台运行（不 fork）
+ExecStart=/usr/bin/python3 /home/pi/soundbox/main.py
+# 真正的启动命令 — 必须绝对路径！
+WorkingDirectory=/home/pi/soundbox
+# main.py 的工作目录 — Path(__file__).parent 用这个
+User=pi
+Group=pi
+# 不要用 root — 用普通用户 pi 跑（更安全）
+Restart=on-failure
+RestartSec=5
+# 程序崩了 5 秒后自动重启 — 关键！main.py 有 bug 也能持续服务
+StandardOutput=journal
+StandardError=journal
+# 输出收集到 journalctl 系统日志，方便排错
+
+[Install]
+WantedBy=multi-user.target
+# 开机进多用户模式时自启动
+```
+
+<Misconception
+  myth="把 python3 main.py 加到 .bashrc 就开机自启了"
+  truth=".bashrc 是 'SSH 登录时跑'，不是 'Pi 启动时跑'。Pi 启动后没人登录 → .bashrc 永远不执行。systemd 才是 Linux 真正的开机自启机制。"
+  why="Linux 启动流程：内核 → systemd → 一堆 .service（按依赖图启动）→ 多用户态就绪。你要让程序在'多用户态就绪'后启动，只能写 .service 文件给 systemd。.bashrc / .profile 是 shell 用户登录时的脚本，跟开机自启无关。"
+/>
+
+### journal 日志：调试服务
+
+服务在后台跑，print 的内容去哪了？**进 journalctl 日志**：
+
+```bash
+# 实时看 soundbox 日志（按 Ctrl+C 退出）
+sudo journalctl -u soundbox -f
+
+# 看最近 50 行
+sudo journalctl -u soundbox -n 50
+
+# 看今天的所有
+sudo journalctl -u soundbox --since today
+```
+
+按按钮时应该实时看到 `▶ voice-dad-hello.mp3 (11 剩余)` 这种输出。
+
+### 常用 systemctl 命令
+
+```bash
+sudo systemctl status soundbox       # 看状态
+sudo systemctl start soundbox        # 启动
+sudo systemctl stop soundbox         # 停止（儿子吵到邻居用）
+sudo systemctl restart soundbox      # 重启（改了 main.py 后用）
+sudo systemctl enable soundbox       # 开机自启
+sudo systemctl disable soundbox      # 关闭开机自启
+sudo systemctl daemon-reload         # 改了 .service 文件后必须跑
+```
+
+**改了 main.py 后**：
+
+```bash
+nano ~/soundbox/main.py
+# 改完 Ctrl+O Ctrl+X
+
+sudo systemctl restart soundbox       # 让新代码生效
+sudo journalctl -u soundbox -f         # 看是否正常
+```
+
+<PredictThenReveal
+  question="我改了 main.py 加了几行代码，但儿子按按钮还是旧行为。怎么回事？"
+  hint="systemd 跑的是哪个版本的代码？"
+  answer="systemd 启动时加载的是当时的 main.py。你后来改文件 systemd 不知道。必须 sudo systemctl restart soundbox 让服务停 + 重新加载 + 启动。每次改代码后都要 restart。这是嵌入式开发跟普通脚本最不同的地方 — 改了就要 restart 服务。"
+/>
+
+<ConceptCheck
+  question="发声盒服务跑起来正常，但你拔了 Pi 电源 1 分钟再插上 — 喇叭立刻能用吗？"
+  options={[
+    {
+      text: "立刻能用 — Pi 内存有缓存",
+      correct: false,
+      why: "拔电源 = Pi 关机 = 内存清空。要重新启动。",
+    },
+    {
+      text: "Pi 启动需要 30-60 秒 — 灯绿后按按钮就能响",
+      correct: true,
+      why: "对。systemd 在 Pi 启动后自动跑 main.py，但 Pi 自身启动要时间。等绿灯偶尔闪 + 红灯常亮 = 系统就绪。",
+    },
+    {
+      text: "必须 SSH 进去手动启动",
+      correct: false,
+      why: "这就是 systemd 解决的问题 — 不用 SSH 手动。",
+    },
+    {
+      text: "需要重新烧 SD 卡",
+      correct: false,
+      why: "拔电源不影响 SD 卡数据。",
+    },
+  ]}
+/>
+
+### 进阶：自动从 Git 拉新代码
+
+```bash
+# 写一个更新脚本
+nano ~/soundbox/update.sh
+```
+
+```bash
+#!/bin/bash
+cd /home/pi/soundbox
+git pull
+sudo systemctl restart soundbox
+echo "Updated at $(date)"
+```
+
+```bash
+chmod +x ~/soundbox/update.sh
+
+# 以后改代码：在 Mac 上 git push，Pi 上跑一次
+~/soundbox/update.sh
+```
+
+发声盒升级一句话搞定。**这就是嵌入式产品的 OTA（Over-The-Air）雏形**。
+
+## Try · 动手验证你真懂了
+
+**真做完整流程**：
+
+1. ✅ 写 /etc/systemd/system/soundbox.service（上面那段）
+2. ✅ `sudo systemctl daemon-reload`
+3. ✅ `sudo systemctl enable soundbox` + `start`
+4. ✅ `sudo systemctl status soundbox` 看 active running
+5. ✅ 按按钮验证响应
+6. ✅ `sudo reboot` 然后等 60 秒
+7. ✅ 不 SSH，直接按按钮 — 应该响（这就是开机自启）
+8. ✅ `sudo journalctl -u soundbox -f` 看到按按钮的实时日志
+
+8 步全过 = 你掌握 systemd 服务化全套。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '改了 main.py 后想让 systemd 跑新代码，该执行？',
+      options: [
+        'sudo systemctl daemon-reload',
+        'sudo systemctl restart soundbox',
+        'sudo reboot',
+        '什么都不用做',
+      ],
+      correct: 1,
+      explain: 'daemon-reload 只针对 .service 文件改了；改代码（main.py）只需要 restart 服务。reboot 也行但杀鸡用牛刀。',
+    },
+    {
+      q: 'Restart=on-failure 是什么意思？',
+      options: [
+        '程序永远重启',
+        '程序非零退出码时（崩溃）自动重启',
+        '系统重启',
+        '只在周一重启',
+      ],
+      correct: 1,
+      explain: 'on-failure = 程序异常退出（exit code != 0）时重启。如果你 Ctrl+C 正常退出（exit 0）不会重启。这是发声盒"崩了自愈"的关键。',
+    },
+    {
+      q: '为什么 .service 文件里 ExecStart 必须用绝对路径 /usr/bin/python3 而不是 python3？',
+      options: [
+        '不重要，写 python3 也行',
+        'systemd 启动时没有用户 PATH 环境 — 必须显式给 python3 的完整位置',
+        'systemd 不支持 Python',
+        '更安全',
+      ],
+      correct: 1,
+      explain: 'systemd 服务运行时 PATH 极简，找不到普通命令。必须用绝对路径。检查 python3 在哪：`which python3` 应该返回 /usr/bin/python3 或 /usr/local/bin/python3。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="systemd 服务化 3 步走"
+  points={[
+    "1. 写 /etc/systemd/system/xxx.service",
+    "2. daemon-reload → enable → start",
+    "3. status / logs 用 journalctl -u xxx",
+    "改代码后 restart；改 .service 后 daemon-reload",
+    "Restart=on-failure 让程序崩了自愈",
+    "User=pi 不用 root — 更安全",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="发声盒儿子能不用爸爸帮就玩了 — 给他解释（或者你自己讲）：为什么之前要爸爸操作？现在为啥不用了？什么是'自动启动'？（60 秒）"
+  scoringRubric={[
+    '✓ 用'Pi 上有个管家自动跑程序'类比',
+    '✓ 区分'手动跑'vs'后台服务'',
+    '✓ 提到崩了自愈',
+    '✗ 没把 systemd 神秘化，说是'调度员'',
+  ]}
+  followUps={[
+    {
+      question: '能让 Pi 关机时也礼貌地把 main.py 退出而不是强杀吗？',
+      hint: '考点：systemd 的 SIGTERM + Python 信号处理',
+    },
+    {
+      question: '发声盒服务跟 Pi 的 ssh 服务有什么相似？',
+      hint: '考点：sshd 也是 systemd 服务，可以 systemctl status sshd 看',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + Pi 重启后按钮自动响 → 解锁 <CrossLink to="n29" relation="后续">喇叭选型 + 音量安全</CrossLink> + N64。
+
+**发声盒已经能独立工作 = 你交给儿子玩不用守着。** 后面 N29-N32 把它变成真"玩具"：装外壳、限音量、电池供电。
+
+---
+
+**JARVIS Note**:
+> *"Sir, systemd 是嵌入式产品从'实验玩具'升级到'真实部署'的核心技能。今天你学的这套，可以原样用到将来你做的智能音箱、家庭传感器、机器人 — 任何要'长期跑'的项目都靠它。"*

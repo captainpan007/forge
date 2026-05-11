@@ -1,0 +1,361 @@
+---
+id: n19
+slug: pygame-mixer
+title: pygame.mixer 播音频
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 19
+duration: 25
+difficulty: 3
+depends_on: [n14, n15]
+unlocks: [n27]
+tags: [python, audio, multimedia, hands-on]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="终于让 Pi'说话'">
+
+发声盒，**核心字眼就是"声"**。前面 18 节都没让 Pi 真正发过声。
+
+现在你 SSH 进 Pi，敲 3 行 Python，喇叭里立刻传出一声"喵～" —— **这就是发声盒功能的核心成立时刻**。
+
+25 分钟教你：用 pygame.mixer 播 mp3，挑音频输出（USB 喇叭 / 3.5mm / HDMI），调音量。配合之前的按钮事件，发声盒主程序成型。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒一共 4 个能力：
+1. 检测按钮（N17 完成）
+2. 事件驱动（N18 完成）
+3. **播放音频**（N19 这一节）
+4. 随机选音频（N20）
+
+这一节兑现承诺：**让 Pi 发出声音**。
+
+为什么选 pygame.mixer：
+- 比 `subprocess.run(["mpg321", "a.mp3"])` 更可控（音量、暂停、淡入淡出）
+- 跨平台（同代码 Mac / Pi 都能跑，方便先在 Mac 调）
+- 学习成本低 —— 3 行 API
+- pygame 是 Python 最稳定的多媒体库之一（20+ 年历史）
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 5 行 Python 让 Pi 通过 USB 喇叭播放任意 mp3 文件，按按钮触发。
+</Callout>
+
+## What · 5 步播第一首歌
+
+### 准备清单
+
+- ✅ Pi 4 + 一个 USB 音箱（套件里那个）或 3.5mm 音箱
+- ✅ 至少一个 mp3 文件（去 freesound.org 下个免版税的"喵叫"）
+- ✅ N14 学过的 pip3 安装能力
+
+### 步骤 1：装 pygame
+
+```bash
+ssh pi@raspberrypi.local
+
+# 装到用户级
+pip3 install --user pygame
+# (大约 30 秒，30MB 左右)
+
+# 验证
+python3 -c "import pygame; print(pygame.version.ver)"
+# 应该输出 "2.x.x"
+```
+
+### 步骤 2：插喇叭 + 选输出
+
+**USB 喇叭：** 直接插 Pi 的 USB 口，Pi OS 默认自动选 USB 作为输出。
+
+**3.5mm 喇叭：** 插 Pi 的 3.5mm 接口，可能需要手动切：
+
+```bash
+# 查可用输出
+aplay -l
+
+# 临时测试声音（白噪声）
+speaker-test -c 2 -t wav -l 1
+# 喇叭应该响一下 "Front left, Front right"
+```
+
+如果没声音，**右上角任务栏的小喇叭图标**点开切换 audio device，或：
+
+```bash
+# 强制走 3.5mm
+sudo raspi-config
+# → Advanced Options → Audio → Force 3.5mm
+```
+
+### 步骤 3：3 行播音频
+
+```python
+# play_test.py
+import pygame
+
+pygame.mixer.init()
+pygame.mixer.music.load("/home/pi/soundbox/sounds/meow.mp3")
+pygame.mixer.music.play()
+
+# 等播完
+import time
+while pygame.mixer.music.get_busy():
+    time.sleep(0.1)
+```
+
+**核心 3 行：** `init() → load(file) → play()`。
+
+`get_busy()` 检测是否还在播 —— 如果不等，程序立刻退出，喇叭没响完就被切断。
+
+### 步骤 4：把音量、循环加进来
+
+```python
+import pygame
+
+pygame.mixer.init()
+
+# 装载
+pygame.mixer.music.load("/home/pi/soundbox/sounds/meow.mp3")
+
+# 音量 0-1
+pygame.mixer.music.set_volume(0.7)        # 70% 音量
+
+# 播放
+pygame.mixer.music.play(loops=0)          # 播 1 次（loops=-1 无限循环）
+
+# 控制
+import time
+time.sleep(2)
+pygame.mixer.music.pause()                # 暂停
+time.sleep(1)
+pygame.mixer.music.unpause()              # 继续
+time.sleep(2)
+pygame.mixer.music.stop()                 # 停
+```
+
+### 步骤 5：跟按钮事件结合 —— 发声盒主体诞生
+
+```python
+# soundbox_v1.py — 发声盒最小可行版本
+from gpiozero import Button
+from signal import pause
+from pathlib import Path
+import pygame
+import random
+
+# 配置
+BUTTON_PIN = 17
+SOUND_DIR = Path(__file__).parent / "sounds"
+
+# 初始化
+pygame.mixer.init()
+pygame.mixer.music.set_volume(0.8)
+
+# 找音频
+SOUNDS = list(SOUND_DIR.glob("*.mp3"))
+assert SOUNDS, f"没找到音频 — 把 mp3 放进 {SOUND_DIR}"
+
+# 事件回调
+def play_random():
+    chosen = random.choice(SOUNDS)
+    print(f"播放：{chosen.name}")
+    pygame.mixer.music.load(str(chosen))
+    pygame.mixer.music.play()
+
+# 按钮
+button = Button(BUTTON_PIN, bounce_time=0.1)
+button.when_pressed = play_random
+
+print(f"发声盒就绪 — {len(SOUNDS)} 个音频。按按钮试试。")
+pause()
+```
+
+**31 行 = 一个发声盒 MVP**。
+
+<Misconception
+  myth="Pi 上播 mp3 要装很多依赖，配置复杂"
+  truth="pip3 install --user pygame 一行，pygame.mixer 自带 mp3 解码（SDL_mixer 底层）。"
+  why="pygame 把 SDL_mixer C 库打包进了 Python 包，安装时一并装好。所以 pip install pygame 就够。不需要 ffmpeg / gstreamer 这些重型依赖。"
+/>
+
+### Pi 上常见音频坑
+
+1. **音量为 0** —— 系统音量在桌面右上角小喇叭，命令行 `alsamixer` 调
+2. **USB 喇叭没自动选** —— `pavucontrol`（先 `sudo apt install pulseaudio-utils`）改默认输出
+3. **mp3 播一半卡** —— 文件损坏，换一个；或者 SD 卡读取慢，换张快卡
+4. **静音了** —— `amixer set Master unmute`
+
+<PredictThenReveal
+  question="我的代码 pygame.mixer.music.load + play 跑完瞬间，喇叭只'啪'了一声然后程序退出。怎么回事？"
+  hint="play 是阻塞还是非阻塞？"
+  answer="pygame.mixer.music.play() 是非阻塞的 — 它启动播放然后立刻返回。如果程序紧接着退出，Python 进程结束 → SDL_mixer 也被清理 → 播放被强切。修法：play() 后用 while pygame.mixer.music.get_busy(): time.sleep(0.1) 等播完，或者让主线程做别的事（比如 pause() 等事件）。"
+/>
+
+<ConceptCheck
+  question="按钮按下播音频。用户连按 3 次（每次间隔 0.5 秒），喇叭里听到什么？"
+  options={[
+    {
+      text: "3 段音频依次播完",
+      correct: false,
+      why: "pygame.mixer.music 只有 1 个音乐流。新 load 会覆盖正在播的。",
+    },
+    {
+      text: "第 3 段音频从头开始播（前面两段被打断）",
+      correct: true,
+      why: "对。每次 load + play 都会 stop 当前正在播的，然后从头播新的。这是 pygame.mixer.music 的设计 — 适合背景音乐，不适合需要叠加的场景。",
+    },
+    {
+      text: "三段音频同时叠加播放",
+      correct: false,
+      why: "想叠加要用 pygame.mixer.Sound（不同于 music），每个 Sound 是独立通道。music 是单通道。",
+    },
+    {
+      text: "Python 报错",
+      correct: false,
+      why: "完全合法操作，不报错，只是后一个覆盖前一个。",
+    },
+  ]}
+/>
+
+### 升级：让按钮按下不打断当前播放（发声盒更人性）
+
+```python
+def play_random():
+    if pygame.mixer.music.get_busy():
+        return  # 正在播 — 忽略这次按下
+    chosen = random.choice(SOUNDS)
+    pygame.mixer.music.load(str(chosen))
+    pygame.mixer.music.play()
+```
+
+或者反过来 —— **每次按都从头打断重播**（儿童玩具风格）：
+
+```python
+def play_random():
+    pygame.mixer.music.stop()    # 强制停
+    chosen = random.choice(SOUNDS)
+    pygame.mixer.music.load(str(chosen))
+    pygame.mixer.music.play()
+```
+
+哪种更适合你儿子？观察他玩了一周决定。
+
+## Try · 动手验证你真懂了
+
+**真做出第一个发声盒 MVP**：
+
+```bash
+# 1. 在 Pi 建项目目录
+ssh pi@raspberrypi.local
+mkdir -p ~/soundbox/sounds
+
+# 2. 把 mp3 文件放进 sounds/（用 scp 从 Mac 传）
+# 在 Mac 终端跑：
+scp ~/Desktop/meow.mp3 pi@raspberrypi.local:~/soundbox/sounds/
+# 输 Pi 密码
+
+# 3. 回 Pi 写主程序
+ssh pi@raspberrypi.local
+cd ~/soundbox
+nano soundbox.py
+# (粘贴步骤 5 那段完整代码)
+
+# 4. 跑
+python3 soundbox.py
+# 按按钮 — 喇叭应该响"喵～"
+
+# 5. 多放几个 mp3 进 sounds/，看 random.choice 真随机选
+```
+
+跑通 = **你做出了发声盒第一个能 demo 的版本**。给儿子按一下看反应。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'pygame.mixer.music.play() 是阻塞还是非阻塞？',
+      options: [
+        '阻塞 — 等播完才返回',
+        '非阻塞 — 立刻返回，播放在后台进行',
+        '看文件大小',
+        'pygame 没这个函数',
+      ],
+      correct: 1,
+      explain: 'play() 立刻返回，让你的代码继续。要"等播完"必须自己用 get_busy() 循环检测或 wait 函数。',
+    },
+    {
+      q: '我想让按钮按下叠加播放（按一次播音乐 1，再按播音乐 2，同时听到）。music 能做吗？',
+      options: [
+        '能',
+        '不能 — music 是单通道。要叠加用 pygame.mixer.Sound',
+        '需要外接调音台',
+        '不可能',
+      ],
+      correct: 1,
+      explain: 'pygame.mixer.music 设计上只有一个流（适合背景音乐场景）。pygame.mixer.Sound 每个对象独立通道，调用 .play() 不互相打断 — 真"叠加"场景用它。',
+    },
+    {
+      q: 'set_volume(0.7) 是什么意思？',
+      options: [
+        '70% 音量（0=静音，1=最大）',
+        '70 分贝',
+        '只能播 70 秒',
+        '70 个文件',
+      ],
+      correct: 0,
+      explain: 'pygame 音量是 0.0-1.0 浮点数。0.7 ≈ 70% 用户感知音量。给儿童玩具一般 0.5-0.7 不刺耳。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="pygame.mixer 三步播音频"
+  points={[
+    "pip3 install --user pygame（一次）",
+    "pygame.mixer.init() — 初始化音频系统",
+    "music.load(文件) → music.play() — 装载 + 播放",
+    "play() 非阻塞 — 需要 get_busy() 或 pause() 让程序活到播完",
+    "music 单通道（替换式）；Sound 多通道（叠加式）",
+    "音量 0-1，set_volume(0.7) 70% 音量",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="儿子在你旁边。给他按按钮发声盒响一声。然后给他解释：电脑里的'声音文件'是什么？爸爸怎么告诉电脑'播这个声'的？为什么电脑要先装一个叫 pygame 的东西？（60 秒）"
+  scoringRubric={[
+    '✓ 用儿童能懂的话（"声音存在卡片里" 等）',
+    '✓ 解释了 pygame 像"教 Pi 听音乐的老师"',
+    '✓ 提到 mp3 是声音的"密码本"',
+    '✗ 没用未解释的术语（"解码"、"通道"等若用要先翻译）',
+  ]}
+  followUps={[
+    {
+      question: '声音是怎么从 Pi 跑到喇叭的？',
+      hint: '考点：USB 协议 / 3.5mm 模拟信号 / 喇叭振膜',
+    },
+    {
+      question: '为什么有些声音文件叫 mp3，有些叫 wav？',
+      hint: '考点：mp3 压缩 vs wav 无损 — 大小 vs 音质权衡',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 发声盒能按按钮响 → 解锁 <CrossLink to="n20" relation="下一节">random 模块</CrossLink>（让随机更智能）+ N27（v1 主程序整合）。
+
+按 learning_path 下一节是 N20 random 模块 —— 让发声盒每次响不一样的声，给儿子惊喜。
+
+**你的发声盒已经活了 80%**。剩下 20% 是稳定性 + 装盒。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 这一节代码跑通的瞬间，你的发声盒第一次'活了' —— 不再是几个文件，是一个能跟物理世界互动的小机器。你儿子第一次按下 → 它响出来的瞬间，会是你这辈子最美好的工程师回忆之一。"*

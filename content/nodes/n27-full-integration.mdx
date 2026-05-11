@@ -1,0 +1,342 @@
+---
+id: n27
+slug: full-integration
+title: 完整集成
+phase: 5
+phase_name: 给儿子用
+project: soundbox
+order: 27
+duration: 30
+difficulty: 3
+depends_on: [n18, n19, n20, n25, n26]
+unlocks: [n28]
+tags: [hardware, software, hands-on, milestone]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="所有零件就位">
+
+5 节铺垫到位 —— 事件驱动 (N18) + 播音频 (N19) + 随机 (N20) + 按钮硬件 (N25) + 音频内容 (N26)。
+
+**这一节把它们焊接成一个完整的发声盒主程序**：
+
+```
+儿子按下按钮 → 随机选一段音频 → 通过喇叭播出
+```
+
+30 分钟后你儿子可以**第一次玩到发声盒**。整个项目从想法到成品的关键时刻。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+这是发声盒**第一次 demo-able**的时刻。N27 跑成功 = 你这 26 节没白学，整个发声盒系统在物理世界活了。
+
+后面 N28-N32 是工程化（自启动、外壳、电池）。但**没有 N27，后面全是空中楼阁**。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** Pi 通电、main.py 跑起来、儿子按一次按钮，喇叭里随机响出一段你录的音频。
+</Callout>
+
+## What · 完整 main.py（带详细注释）
+
+### 完整代码（30 行）
+
+```python
+#!/usr/bin/env python3
+"""
+soundbox — 给儿子的 dad-made 发声盒
+按一下按钮，随机播放一段音频
+"""
+from gpiozero import Button
+from signal import pause
+from pathlib import Path
+from datetime import datetime
+import pygame
+import random
+import sys
+
+# ─── 配置 ─────────────────────────────
+BUTTON_PIN = 17                                  # BCM 17 = 物理 11
+SOUND_DIR = Path(__file__).parent / "sounds"     # 脚本同级 sounds/
+VOLUME = 0.7                                     # 0.0-1.0，给小孩留余量
+BOUNCE_TIME = 0.1                                # 100ms 去抖
+
+# ─── 初始化 ───────────────────────────
+pygame.mixer.init()
+pygame.mixer.music.set_volume(VOLUME)
+
+SOUNDS = sorted(SOUND_DIR.glob("*.mp3"))
+if not SOUNDS:
+    print(f"ERROR: 没找到 mp3 文件在 {SOUND_DIR}")
+    sys.exit(1)
+
+# "shuffle + 队列"模式 — 一轮内不重复（N20 学的）
+queue = []
+
+# ─── 事件回调 ─────────────────────────
+def play_random():
+    global queue
+    # 队列空了 → 洗一轮
+    if not queue:
+        queue = SOUNDS[:]
+        random.shuffle(queue)
+
+    chosen = queue.pop()
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] ▶ {chosen.name}  ({len(queue)} 剩余)")
+
+    pygame.mixer.music.load(str(chosen))
+    pygame.mixer.music.play()
+
+# ─── 启动 ─────────────────────────────
+button = Button(BUTTON_PIN, bounce_time=BOUNCE_TIME)
+button.when_pressed = play_random
+
+print(f"🎵 发声盒就绪 — {len(SOUNDS)} 段音频")
+print(f"📍 GPIO {BUTTON_PIN} (BCM)，音量 {int(VOLUME*100)}%")
+print(f"按 Ctrl+C 退出")
+pause()
+```
+
+### 逐段拆解
+
+**配置段** —— 所有可调参数集中在顶部：
+
+```python
+BUTTON_PIN = 17       # 改 GPIO 直接改这里
+VOLUME = 0.7          # 调音量改这里
+BOUNCE_TIME = 0.1     # 防误触改这里
+```
+
+**初始化段** —— 资源准备：
+
+```python
+pygame.mixer.init()              # 启动音频系统
+SOUNDS = sorted(SOUND_DIR.glob("*.mp3"))   # 拉取所有 mp3
+```
+
+`sorted` 让顺序稳定（每次跑文件顺序一致，方便排错）。
+
+**洗牌队列** —— 不连续重复：
+
+```python
+queue = []     # 模块级变量保存洗牌后的序列
+```
+
+第一次按按钮 → queue 空 → shuffle 一轮 → pop 第一个；后续按按钮直接 pop。一轮播完队列空了 → 自动重新洗。
+
+**事件回调** —— 核心逻辑：
+
+```python
+button.when_pressed = play_random   # 按下时调
+pause()                              # 让进程活着
+```
+
+<Misconception
+  myth="一个文件 30 行代码 = 太小，不专业 — 应该拆成 5 个模块"
+  truth="发声盒规模小（< 100 行），拆模块反而过度设计。一个文件 + 清晰分段 (配置/初始化/回调/启动) 完全足够。"
+  why="过早抽象是嵌入式新手第二大坑（第一是不用万用表）。Pi 项目典型规模 50-300 行，一个 main.py 加注释完全可读 + 维护方便。等你做小车（30 个 GPIO + 计算机视觉）时再拆模块，发声盒不需要。"
+/>
+
+### 测试流程
+
+```bash
+# 1. SSH 进 Pi
+ssh pi@raspberrypi.local
+
+# 2. 切到项目目录
+cd ~/soundbox
+
+# 3. 确认音频和按钮都在
+ls sounds/                   # 应该看到 10+ 个 mp3
+# 按按钮听万用表蜂鸣（N24 验证过的步骤）
+
+# 4. 写 main.py
+nano main.py                  # 粘贴上面完整代码
+# Ctrl+O 保存，Ctrl+X 退出
+
+# 5. 跑
+python3 main.py
+```
+
+终端应该显示：
+
+```
+🎵 发声盒就绪 — 12 段音频
+📍 GPIO 17 (BCM)，音量 70%
+按 Ctrl+C 退出
+```
+
+**按下大蘑菇按钮** —— 喇叭响 + 终端打印：
+
+```
+[14:32:05] ▶ voice-dad-hello.mp3  (11 剩余)
+[14:32:09] ▶ animal-cat-meow.mp3  (10 剩余)
+[14:32:12] ▶ voice-mom-loveyou.mp3  (9 剩余)
+...
+```
+
+**🎉 这就是发声盒 v1**。
+
+<PredictThenReveal
+  question="按按钮第一次响完后立刻再按 — 喇叭被打断重新播第二段。儿子玩起来体验如何？"
+  hint="儿童玩具的反馈期望。"
+  answer="对儿童玩具，'立刻响应'比'听完一段'重要。儿子按下立刻想听不一样的声音 = 打断式更刺激。如果你想'让上一段播完才允许下一次'，加 `if pygame.mixer.music.get_busy(): return`（N19 升级版那段）。两种模式都对，看儿子玩了一周后决定保留哪个。这就是 N32 - 给儿子玩的观察反馈。"
+/>
+
+### 错误处理（生产代码必备）
+
+上面代码还有进步空间。**生产版加 try/except**：
+
+```python
+def play_random():
+    global queue
+    try:
+        if not queue:
+            queue = SOUNDS[:]
+            random.shuffle(queue)
+        chosen = queue.pop()
+        print(f"▶ {chosen.name}")
+        pygame.mixer.music.load(str(chosen))
+        pygame.mixer.music.play()
+    except Exception as e:
+        # gpiozero 回调里抛异常会被静默吞掉 — 显式打印才能调试
+        print(f"⚠ 错误: {e}")
+```
+
+文件损坏 / 音频系统挂了 / 队列异常 —— try/except 让你看到错误而不是"按按钮没反应"。
+
+<ConceptCheck
+  question="main.py 跑起来一切正常，但你把电源拔了再插，按按钮不响 — 最可能原因？"
+  options={[
+    {
+      text: "代码 bug",
+      correct: false,
+      why: "重启前 OK 重启后不 OK，不是代码问题。",
+    },
+    {
+      text: "main.py 没自动启动 — Pi 重启后没人跑代码",
+      correct: true,
+      why: "对。手动 `python3 main.py` 是临时跑，进程在你 SSH 会话里。Pi 重启 = 会话断 = 进程结束。要让 Pi 通电自动跑 main.py 需要 systemd（N28 学）。",
+    },
+    {
+      text: "SD 卡坏了",
+      correct: false,
+      why: "如果坏 Pi 都启动不了。",
+    },
+    {
+      text: "需要按 Pi 上的物理按钮重启",
+      correct: false,
+      why: "Pi 没物理重启按钮。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**完整端到端测试**：
+
+1. ✅ SSH 进 Pi
+2. ✅ ~/soundbox/sounds/ 里有 10+ 段 mp3（N26 准备的）
+3. ✅ 按钮接在 GPIO 17 + GND（N24 接好的）
+4. ✅ ~/soundbox/main.py 写完整代码
+5. ✅ `python3 main.py` 跑起来
+6. ✅ 按按钮 5 次 — 听到 5 段不同音频（队列模式不重复）
+7. ✅ 按到第 11 次（如果有 10 段）— 看队列洗牌重置
+8. ✅ Ctrl+C 退出干净（不报错）
+
+8 步全过 = 发声盒 v1 完成 + 给儿子试玩。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'main.py 用 Path(__file__).parent / "sounds" 而不是写死 /home/pi/soundbox/sounds 的好处？',
+      options: [
+        '没区别',
+        '可移植 — 改名重命名都不影响；脚本带去同事 Pi 也能跑',
+        '加载更快',
+        '更安全',
+      ],
+      correct: 1,
+      explain: 'Path(__file__).parent 永远指向脚本所在目录。换电脑、改名、用别的用户名 — 代码不需要改。这是 N15 学的"路径黄金做法"。',
+    },
+    {
+      q: '为什么用 shuffle + 队列模式而不是 random.choice 每次重新挑？',
+      options: [
+        '没区别',
+        '一轮内不重复 — 给儿子的体验更可预期但不死板',
+        '更快',
+        '更省电',
+      ],
+      correct: 1,
+      explain: 'random.choice 可能连续两三次同一段（统计学正常但儿童体验差）。shuffle 队列保证一轮内每段都出现一次，听完一轮再随机重排。这是 N20 学的"避免重复"实战。',
+    },
+    {
+      q: '我代码里 button.when_pressed = play_random，怎么改成"按下时跑额外的 print(\\"按了\\")"？',
+      options: [
+        'button.when_pressed = play_random, print',
+        '改 play_random 内部加 print 一行',
+        'button.when_pressed = [play_random, print]',
+        '做不到',
+      ],
+      correct: 1,
+      explain: 'when_pressed 只接一个函数。要加日志直接在 play_random 内部加 print；或者定义个 wrapper 函数 def on_press(): print(...); play_random() 然后 button.when_pressed = on_press。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="发声盒 main.py 的 5 段结构"
+  points={[
+    "1. 配置（顶部）：BUTTON_PIN / SOUND_DIR / VOLUME — 一眼可调",
+    "2. 初始化：pygame.mixer.init() + 加载 SOUNDS",
+    "3. 业务回调：play_random() — 核心逻辑",
+    "4. 启动：button + when_pressed + pause()",
+    "5. 错误处理：try/except 包回调 — 生产必备",
+    "30 行 = 完整 dad-made 玩具核心",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  通过 Feynman + 真给儿子玩一次（哪怕 30 秒）→ 解锁 <CrossLink to="n28" relation="下一节">systemd 自启动</CrossLink>。
+</Callout>
+
+<FeynmanPrompt
+  prompt="发声盒 v1 跑起来给儿子玩 30 秒，记录他的反应。然后给他（或者你自己）解释：爸爸的代码是怎么让按钮触发声音的？跟你平时按手机有啥不同？（90 秒）"
+  scoringRubric={[
+    '✓ 描述了儿子真实反应（重要 — 不是猜的）',
+    '✓ 解释了"代码 = 一段指令清单"',
+    '✓ 给出按钮 → 代码 → 喇叭的完整链',
+    '✗ 没把发声盒说成"魔法"，说成"爸爸的工具组合"',
+  ]}
+  followUps={[
+    {
+      question: '儿子按了 3 次就不感兴趣了 — 怎么改？',
+      hint: '考点：内容/反馈/形态都可改 — 加 LED / 加歌单切换 / 录新声音',
+    },
+    {
+      question: '如果儿子把发声盒摔了能修吗？',
+      hint: '考点：模块化设计 — 按钮 / 喇叭 / Pi 都可单独换',
+    },
+  ]}
+/>
+
+## 完成后
+
+🎉 **发声盒 v1 诞生**。给你儿子按一下，看他的反应。**这是 forge 学习的全部意义在你眼前活过来的时刻**。
+
+✅ Feynman 通过 + 真给儿子玩过 → 解锁 <CrossLink to="n28" relation="下一节">systemd 自启动</CrossLink>。
+
+N28 我们让 Pi 通电自动跑 main.py —— **儿子不需要爸爸 SSH 也能玩**。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 现在你手里这个白色塑料盒里跑的代码 —— 是你从 N01 开始一节一节学出来的成果。30 行 Python 看着不多，但每一行背后是 26 节的认知建构。今晚记下儿子第一次按下时的表情。"*

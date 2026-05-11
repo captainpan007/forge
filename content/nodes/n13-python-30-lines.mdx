@@ -1,0 +1,323 @@
+---
+id: n13
+slug: python-30-lines
+title: Python 30 行入门
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 13
+duration: 30
+difficulty: 2
+depends_on: []
+unlocks: [n14, n16, n20]
+tags: [python, programming, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次写代码">
+
+发声盒说到底是一段代码：**按钮按下 → 随机选一个音频 → 播放**。这段逻辑用 Python 写下来大约 15 行。
+
+但你从来没写过 Python。
+
+—— 别紧张。Python 是公认**初学者最友好**的语言。30 分钟看完这一节你就能读懂、改动、写出发声盒所需的全部代码。比英语单词还简单。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒的所有"大脑"用 Python 写。N14-N20 你会装库 / 控 GPIO / 播音频 —— 但**前提是你得读懂 Python 代码**。
+
+不需要成为 Python 工程师。你只需要：
+- 看懂别人贴的代码片段
+- 能照着改几行（GPIO 编号、文件路径、循环次数）
+- 出错时能定位到哪一行
+
+30 分钟覆盖你前 3 周需要的 90%。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 拿到任何 30 行以内的 Python 脚本，你能逐行说出它在做什么。
+</Callout>
+
+## What · 5 个最关键的概念
+
+### 概念 1: 变量 —— 给数据起个名
+
+```python
+button_pin = 17           # 整数
+volume = 0.8              # 小数
+greeting = "你好儿子"     # 字符串
+is_playing = False        # 布尔（True / False）
+sound_files = ["a.mp3", "b.mp3", "c.mp3"]  # 列表
+```
+
+**没有类型声明** —— Python 自动猜。你只需要 `名字 = 值`。
+
+<Misconception
+  myth="Python 不写类型 = 不严谨 / 不专业"
+  truth="Python 是「动态类型」语言 — 变量类型由值决定，运行时检查。这是设计选择，让代码短而易读。"
+  why="C / Java 这种「静态类型」要写 `int x = 17;`，多打字、编译期检查。Python 选择「写 `x = 17` 即可，运行时再说」 — 牺牲一点编译期安全，换巨大的可读性和开发速度。脚本场景 + 嵌入式胶水代码完美匹配 Python 的取舍。"
+/>
+
+### 概念 2: print —— 让 Python 说话
+
+```python
+print("Hello")              # 输出 "Hello"
+print("Volume:", volume)    # 输出 "Volume: 0.8"
+print(f"Pin {button_pin} is high")  # f-string，输出 "Pin 17 is high"
+```
+
+**f-string**（前缀 `f"..."`）能在字符串里直接嵌变量，发声盒里**大量使用**：
+
+```python
+print(f"Playing {sound_files[0]} on pin {button_pin}")
+# 输出 "Playing a.mp3 on pin 17"
+```
+
+### 概念 3: if / else —— 条件判断
+
+```python
+if volume > 0.5:
+    print("声音有点大")
+elif volume > 0.2:
+    print("声音正常")
+else:
+    print("声音太小听不见")
+```
+
+**关键：缩进就是代码块**（Python 没有 `{ }`）。习惯用 **4 个空格**缩进。
+
+VS Code 设置文件编辑会自动帮你处理 —— 你按 Tab，VS Code 自动转 4 空格。
+
+<PredictThenReveal
+  question="下面这段代码会输出什么？\n\n```python\nx = 5\nif x > 3:\nprint(&quot;big&quot;)\n```\n\n注意 print 那行没缩进。"
+  hint="Python 把缩进当语法 — 没缩进意味着什么？"
+  answer="报 IndentationError。Python 强制要求 if 块内的代码必须缩进（4 个空格惯例）。没缩进 = 解释器认为 if 块是空的 + print 是独立语句，但 if 块不能为空 → 语法错误。这是新手第一坑：忘记缩进。"
+/>
+
+### 概念 4: for 循环 —— 重复做一件事
+
+```python
+# 把列表里每个元素打印一遍
+for sound in sound_files:
+    print(f"Found: {sound}")
+
+# 输出:
+# Found: a.mp3
+# Found: b.mp3
+# Found: c.mp3
+```
+
+```python
+# 重复 N 次
+for i in range(3):       # i 从 0 到 2
+    print(f"Round {i}")
+
+# 输出:
+# Round 0
+# Round 1
+# Round 2
+```
+
+发声盒里你会用 `for` 来：扫描多个按钮、检查多个文件是否存在、初始化多个 LED 等。
+
+### 概念 5: def —— 定义一个"动作"（函数）
+
+```python
+def play_sound(filename, volume=0.8):
+    print(f"开始播 {filename}，音量 {volume}")
+    # ... 这里写真正播放的逻辑 ...
+    print("播放结束")
+
+# 调用：
+play_sound("a.mp3")              # 用默认音量 0.8
+play_sound("b.mp3", volume=0.5)  # 自定义音量
+```
+
+**def = define（定义）。** 函数让你把一段逻辑命名 + 复用。发声盒的核心逻辑会写成几个函数：`play_sound()` `read_button()` `pick_random()`。
+
+<ConceptCheck
+  question="下面这段 Python 输出什么？\n\n```python\nsounds = ['a', 'b', 'c']\nfor s in sounds:\n    if s == 'b':\n        print(f&quot;Found {s}!&quot;)\n```"
+  options={[
+    {
+      text: "Found a! Found b! Found c!",
+      correct: false,
+      why: "if 过滤了只有 'b' 才打印，所以 a 和 c 跳过。",
+    },
+    {
+      text: "Found b!",
+      correct: true,
+      why: "for 把列表 ['a','b','c'] 逐个赋给 s。if 检查 s == 'b'，只有第二次（s='b'）成立，打印一次。",
+    },
+    {
+      text: "Found b! Found b! Found b!",
+      correct: false,
+      why: "for 循环 3 次，但 if 只在 s='b' 那次为真。",
+    },
+    {
+      text: "报错",
+      correct: false,
+      why: "语法正确（缩进、冒号、== 都对）。",
+    },
+  ]}
+/>
+
+## 完整示例：发声盒核心逻辑骨架
+
+```python
+# 把上面 5 个概念串起来 —— 发声盒的简化版
+
+import random   # 标准库，下一节 N14 详解
+
+# 配置
+button_pin = 17
+sound_files = ["a.mp3", "b.mp3", "c.mp3", "d.mp3"]
+
+# 定义两个动作
+def pick_random_sound():
+    return random.choice(sound_files)
+
+def play(filename):
+    print(f"播放 {filename}（这里假装播了，真播放看 N19）")
+
+# 主循环
+def main():
+    print("发声盒启动")
+    while True:                          # 永远循环
+        # 在 N17 这里会换成真按钮检测
+        input("按回车模拟按钮：")        # 临时占位
+        sound = pick_random_sound()
+        play(sound)
+
+# 入口
+if __name__ == "__main__":
+    main()
+```
+
+**11 行真代码 + 注释 = 整个发声盒的骨架。** 后面 N14-N20 把每个 `# 占位` 替换成真实现。
+
+<Callout type="info" icon="🧠">
+  **真相：** Python 项目里 80% 的代码长得就这样 —— 一堆函数定义 + 一个 main() 入口。掌握这个模式，你能读懂 90% 的小项目。
+</Callout>
+
+## Try · 动手验证你真懂了
+
+**SSH 进 Pi，真敲一次 Python**：
+
+```bash
+# 进 Pi 后：
+python3                        # 进入 Python 交互模式
+```
+
+然后逐行敲：
+
+```python
+>>> name = "alex"
+>>> age = 39
+>>> print(f"我叫 {name}，今年 {age} 岁")
+我叫 alex，今年 39 岁
+
+>>> def greet(who):
+...     print(f"你好 {who}！")
+...
+>>> greet("儿子")
+你好 儿子！
+
+>>> for i in range(3):
+...     greet(f"朋友 {i}")
+...
+你好 朋友 0！
+你好 朋友 1！
+你好 朋友 2！
+
+>>> exit()                     # 退出 Python
+```
+
+跑通这套 = 你已经会基础 Python 了。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'Python 用什么表示「代码块」（比如 if 后的内容）？',
+      options: [
+        '花括号 { }',
+        '缩进（一般 4 个空格）',
+        '关键字 begin/end',
+        '小括号 ()',
+      ],
+      correct: 1,
+      explain: 'Python 用缩进表示代码块 — 跟 C / Java / JavaScript 用 { } 完全不同。这是 Python 最显著的语法特点。',
+    },
+    {
+      q: 'f-string 是什么？',
+      options: [
+        '一种文件格式',
+        'Python 3.6+ 的字符串模板：f"text {variable}" 直接嵌变量',
+        '函数返回类型',
+        '随机数生成器',
+      ],
+      correct: 1,
+      explain: 'f-string 是 Python 3.6 引入的字符串格式化语法，前缀 f 让花括号里的表达式被求值。比老的 % 或 .format() 更直观。',
+    },
+    {
+      q: 'def play_sound(volume=0.8) 里 volume=0.8 是什么意思？',
+      options: [
+        'volume 必须是 0.8',
+        '默认参数 — 调用时不传 volume 就用 0.8',
+        '把 volume 设为 0.8 之后不能改',
+        '语法错误',
+      ],
+      correct: 1,
+      explain: '默认参数。play_sound("a.mp3") 调用时 volume 自动是 0.8。play_sound("a.mp3", 0.5) 传值覆盖默认。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="Python 入门 5 件套"
+  points={[
+    "变量：名字 = 值（不写类型）",
+    "print：让程序'说话'，用 f-string 嵌变量",
+    "if / else：条件判断，注意缩进 4 空格",
+    "for：遍历列表或 range()",
+    "def：定义函数 = 把一段逻辑命名复用",
+    "if __name__ == '__main__': 是脚本入口的标准写法",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给从没写过代码的朋友解释：什么是 Python？为什么它比 C 容易？给他演示 5 行代码（变量 + print + if + for + def）的简单作用。（90 秒）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（菜谱 / 流水线 / 给朋友写指令 等）',
+    '✓ 解释了"缩进就是代码块"',
+    '✓ 给出 print / for 两个具体例子',
+    '✗ 没把 Python 跟其他语言绝对对比（"Python 最好" 这种说法不对）',
+  ]}
+  followUps={[
+    {
+      question: 'Python 跟 JavaScript / Java 区别大吗？',
+      hint: '考点：动态类型语言 vs 静态类型 / 不同生态',
+    },
+    {
+      question: '我学 Python 后还要学别的语言吗？',
+      hint: '考点：Python 覆盖嵌入式 / Web 后端 / AI / 数据分析 — 业务场景决定',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 在 Pi 上跑过交互式 Python → 解锁 <CrossLink to="n14" relation="下一节">import 和 pip</CrossLink> + N16（点 LED）+ N20（random）。
+
+下一节 N14 你学怎么装第三方库（pip）—— **gpiozero 就是这么装上的**，掌握了 pip 等于打开了 Python 整个生态系统。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 写代码的人对 Python 的态度是'第一个学的语言之一 + 永远不会扔'。它简单到可以一边查文档一边写，又强大到 OpenAI / Instagram / Netflix 都在用。你儿子如果将来想学编程，Python 也大概率是他的入门语言 —— 你现在学等于将来教他。"*

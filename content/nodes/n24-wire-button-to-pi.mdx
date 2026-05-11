@@ -1,0 +1,241 @@
+---
+id: n24
+slug: wire-button-to-pi
+title: 接按钮到 Pi（实操）
+phase: 4
+phase_name: 硬件实操
+project: soundbox
+order: 24
+duration: 30
+difficulty: 3
+depends_on: [n06, n17, n21, n22, n23]
+unlocks: [n25]
+tags: [hardware, hands-on, milestone]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="所有理论 → 真硬件">
+
+前面 5 节铺垫到位：
+- N06 你认得 Pi 40 根针脚 ✓
+- N17 你会 gpiozero Button ✓
+- N21 你懂上拉/下拉电阻 ✓
+- N22 你找出大按钮的 COM/NO 针脚 ✓
+- N23 你选对杜邦线公母 ✓
+
+**这一节把它们全部用起来**：把大蘑菇按钮真接到 Pi。30 分钟后 N25 验证一下，发声盒"真正活着"的瞬间就到了。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒的物理输入入口就是这一步。**接错 = 软件再完美也没用**。这一节是软硬件交界面，也是发声盒**第一次跟物理世界对话**。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 接好按钮 + 万用表验证连通性 + 不动代码用上电测试就知道接对没。
+</Callout>
+
+## What · 完整 6 步接线
+
+<AssemblyStepper
+  intro="N24 · 大蘑菇按钮接到 Pi GPIO 17"
+  steps={[
+    {
+      title: "断电 + 检查按钮针脚",
+      visual: "/diagrams/cg-step-1.svg",
+      description: <><strong>Pi 必须断电</strong>（拔 USB-C 电源）。<br/>翻按钮底面，找出 COM + NO 两个针脚（<CrossLink to="n22" relation="还记得">N22 万用表通断档找</CrossLink>）。<br/>给找到的两个针脚贴小标签 "C" 和 "N"。</>,
+      newComponent: "Pi 断电 + 按钮针脚标识"
+    },
+    {
+      title: "选对杜邦线",
+      visual: "/diagrams/cg-step-2.svg",
+      description: <>需要 <strong>2 根 母-母杜邦线</strong>：Pi 针脚是公（凸针），按钮针脚也是公（凸针），所以两端都需要母头。<br/><HighlightedTerm color="black">黑色一根</HighlightedTerm>给 GND（约定俗成），<HighlightedTerm color="red">红色或其他</HighlightedTerm>给信号。</>,
+      newComponent: "2 根母-母杜邦线"
+    },
+    {
+      title: "接 COM 端 → Pi GND",
+      visual: "/diagrams/cg-step-3.svg",
+      description: <>拿 <HighlightedTerm color="black">黑色母-母线</HighlightedTerm>：一端套在按钮 <HighlightedTerm color="gray">COM 针脚</HighlightedTerm>上，另一端插 <HighlightedTerm color="gray">Pi 物理 6 号针脚（GND）</HighlightedTerm>。<br/>查 <CrossLink to="n06" relation="见">N06 配色引脚图</CrossLink>确认 6 号是 GND。<br/><strong>轻拉测试不松。</strong></>,
+      newComponent: "黑线 COM → GND"
+    },
+    {
+      title: "接 NO 端 → Pi GPIO 17",
+      visual: "/diagrams/cg-step-4.svg",
+      description: <>拿 <HighlightedTerm color="orange">橙色（或红色）母-母线</HighlightedTerm>：一端套按钮 <HighlightedTerm color="orange">NO 针脚</HighlightedTerm>，另一端插 <HighlightedTerm color="green">Pi 物理 11 号针脚（BCM 17）</HighlightedTerm>。<br/>记住：<strong>代码里 Button(17) = BCM 17 = 物理 11</strong>（不是物理 17）。</>,
+      newComponent: "橙线 NO → GPIO 17"
+    },
+    {
+      title: "万用表验证连通性",
+      visual: "/diagrams/cg-step-1.svg",
+      description: <>Pi <strong>仍断电</strong>。万用表通断档：<br/>1. 表笔接 Pi 物理 11 号（GPIO 17）+ Pi 物理 6 号（GND）<br/>2. 按按钮 — 万用表应该<strong>蜂鸣</strong>（两点导通）<br/>3. 松开 — 应该<strong>不响</strong>（断开）<br/>这一步让你 100% 确认硬件对了，跑代码前不抓瞎。</>,
+      newComponent: "万用表通断验证"
+    },
+    {
+      title: "通电 + 等 N25 跑代码",
+      visual: "/diagrams/cg-step-2.svg",
+      description: <>给 Pi 插 USB-C 电源。等 30 秒 Pi 启动。<br/>不要现在 SSH 跑代码 — N25 我们会写一个完整的"按下打印"测试。<br/>检查 Pi 红灯常亮、绿灯偶尔闪 — 正常启动。</>,
+      newComponent: "Pi 通电就绪"
+    },
+  ]}
+/>
+
+### 完成后的物理样子
+
+```
+你的桌面应该像这样：
+
+  [大蘑菇按钮]──黑线──[Pi 物理 6 GND]
+       │
+       └────橙线────[Pi 物理 11 GPIO 17]
+
+  Pi 4 通电（红绿灯）
+  按钮在桌上等你按
+```
+
+<Misconception
+  myth="接线对就行，万用表那一步可以省"
+  truth="万用表 60 秒能省你 30 分钟的'代码 bug 还是硬件 bug'调试。专业工程师都会先做硬件 sanity check。"
+  why="嵌入式调试黄金法则：先排除硬件，再怀疑软件。硬件问题（接错/松动）的症状跟代码 bug 完全一样（按钮没反应），但调试方向完全不同。万用表验证一下 = 一行明确边界。N25 跑代码不响时你能 30 秒确认'问题在软件，不在硬件'。"
+/>
+
+### 常见接线错误（5 大坑）
+
+| 错误 | 症状 | 修复 |
+|---|---|---|
+| **物理 17 当成 GPIO 17** | 按钮没反应（你接到 3.3V 上了）| 改成物理 **11** |
+| **接了 COM + NC** | 没按时一直触发，按了反而停 | 换成 COM + NO |
+| **公母不匹配** | 杜邦线插不进 / 接触不良 | 母-母线接 Pi+按钮（两端都是针） |
+| **GND 漏接** | 按钮无反应（电路不通） | 黑线连按钮 COM 跟 Pi 任意 GND（6/9/14/20/25/30/34/39）|
+| **杜邦线松** | 时灵时不灵 | 轻按确认插紧，长期用焊接 |
+
+<PredictThenReveal
+  question="我按按钮，Pi 啥反应都没有（N25 跑代码看不到 print）。先排查代码还是硬件？"
+  hint="嵌入式调试黄金法则。"
+  answer="先排查硬件。具体步骤：(1) 按按钮时听万用表通断蜂鸣 — 不响 = 接错 / 没插紧；(2) 用 LED 测 GPIO 17 是否正确接：把 LED 临时接 GPIO 17 跑 LED(17).on()，灯亮 = GPIO 通；(3) 检查代码里 Button(17) 而不是 Button(11)。硬件全 OK 了再读代码。"
+/>
+
+<ConceptCheck
+  question="按完按钮 Pi 不响，软件没问题（你用 LED 闪烁脚本验证 GPIO 17 输出正常）。最可能的硬件问题？"
+  options={[
+    {
+      text: "按钮坏了",
+      correct: false,
+      why: "排在最后。按钮是机械件，5 块钱的玩具不太可能新买就坏。",
+    },
+    {
+      text: "GND 没共连（黑线漏接或松了）",
+      correct: true,
+      why: "对。GPIO Input 没 GND 参考 = 漂浮电压 = 不响应按钮闭合。先按按下时听万用表蜂鸣，没响就是 GND 路径断了。",
+    },
+    {
+      text: "Pi 4 的 GPIO 17 是坏的",
+      correct: false,
+      why: "极少。Pi 4 的 GPIO 出厂全好，只有过载烧才坏。先验证其他可能性。",
+    },
+    {
+      text: "代码必须用 sudo",
+      correct: false,
+      why: "现代 gpiozero 不需要 sudo（用 lgpio backend），跟 sudo 无关。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+按照上面 6 步真做一次。**关键验证 = 第 5 步万用表通断测试**：
+
+1. ✅ Pi 断电
+2. ✅ 按钮 COM 接 Pi GND（黑线）
+3. ✅ 按钮 NO 接 Pi GPIO 17（橙线）
+4. ✅ 万用表通断档接 GPIO 17 + GND
+5. ✅ 按按钮 → 万用表蜂鸣
+6. ✅ 松开 → 万用表静音
+
+6 步都对 = 硬件 100% 就绪。下一节 N25 跑代码看效果。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '按钮 COM 应该接 Pi 的什么针脚？',
+      options: [
+        'Pi 物理 1 号（3.3V）',
+        'Pi 任意 GND 针脚（物理 6 / 9 / 14 ...）',
+        'Pi 物理 17 号',
+        '随便哪根',
+      ],
+      correct: 1,
+      explain: 'COM = Common 公共端，发声盒模式接 GND。Pi 8 根 GND 任意一根都行（GND 在 Pi 内部全连通）。',
+    },
+    {
+      q: '按钮 NO 接 Pi GPIO 17，代码该用什么 BCM 编号？',
+      options: [
+        'Button(11) — 因为接到了物理 11',
+        'Button(17) — BCM 编号',
+        'Button(6) — 因为 COM 接了物理 6',
+        'Button.get_first()',
+      ],
+      correct: 1,
+      explain: 'Python gpiozero 用 BCM 编号。BCM 17 对应物理 11。代码写 Button(17)，物理上线接到 11 号针脚。这是 N06 学的"BCM ≠ 物理"陷阱。',
+    },
+    {
+      q: '万用表通断测验证完，按按钮万用表蜂鸣 — 还需要其他验证吗？',
+      options: [
+        '不用，硬件 100% 就绪',
+        '需要测每根线的电阻',
+        '需要拆开按钮看里面',
+        '需要测电压',
+      ],
+      correct: 0,
+      explain: '通断测试已经验证：按下时电流能从 GPIO 17 经过按钮到 GND。这是按钮电路工作所需的全部条件。可以放心 N25 跑代码。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="按钮接 Pi 的 6 步标准流程"
+  points={[
+    "1. Pi 断电",
+    "2. 按钮找 COM + NO（N22 方法）",
+    "3. 黑线 COM → Pi GND（任意 GND 针脚）",
+    "4. 橙/红线 NO → Pi GPIO 17 (物理 11)",
+    "5. 万用表通断验证（关键）",
+    "6. Pi 通电，N25 跑代码",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给儿子看你刚接好的按钮电路。给他解释：那个大按钮是怎么连到爸爸的小电脑（Pi）的？两根线分别干嘛的？（60 秒）"
+  scoringRubric={[
+    '✓ 用儿童能懂的话（"按钮告诉电脑'按了'" 等）',
+    '✓ 解释了两根线：一根'报告'，一根'地基'',
+    '✓ 提到为什么不能少接一根',
+    '✗ 不要用"上拉电阻"等术语',
+  ]}
+  followUps={[
+    {
+      question: '为什么 Pi 不能像我手机那样无线感应按钮？',
+      hint: '考点：物理按钮 = 机械触点 + 电流；无线需要额外射频模块',
+    },
+    {
+      question: '如果黑线不接，按按钮 Pi 能感觉到吗？',
+      hint: '考点：GND 是参考点，缺了就读不到信号',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 万用表通断验证过 → 解锁 <CrossLink to="n25" relation="下一节">调试 - 按一下打印</CrossLink>。
+
+N25 我们跑一个"按一下 print"的极简代码 —— 这是发声盒**第一次真正硬件 + 软件联通**。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 这一节是嵌入式工程师'手感' 的开始。从这一秒起，你不只是个写代码的人，是个 **能把代码跟物理世界连起来** 的人。这种能力在 99% 的程序员里只有 5% 拥有 — 你已经迈进了这一小群里。"*

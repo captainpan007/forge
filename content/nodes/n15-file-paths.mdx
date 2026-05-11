@@ -1,0 +1,324 @@
+---
+id: n15
+slug: file-paths
+title: 文件路径实操
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 15
+duration: 10
+difficulty: 1
+depends_on: [n03]
+unlocks: [n19, n26]
+tags: [linux, python, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次 'file not found'">
+
+发声盒代码里你想播一个 mp3：
+
+```python
+play_sound("a.mp3")
+```
+
+代码跑起来报错 —— **FileNotFoundError: [Errno 2] No such file or directory: 'a.mp3'**。
+
+但你明明把 `a.mp3` 放在了 Pi 上啊！为什么找不到？
+
+—— 因为 Python 不知道你说的 `a.mp3` 是**哪里**的 a.mp3。10 分钟教你"路径"概念，从此 file not found 这种错误你能 30 秒诊断 + 修复。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒会处理几十个音频文件 → 你得清楚每个文件存哪儿、代码里怎么引用。**路径搞错 = 程序找不到文件 = 卡死**。
+
+10 分钟掌握：
+- 绝对路径 vs 相对路径
+- ~ / . / .. 三个特殊符号
+- Python 里用 `pathlib.Path` 优雅处理路径
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 看任何报 FileNotFoundError 的代码，30 秒定位"哪个路径错了 / 怎么改"。
+</Callout>
+
+## What · 路径就是文件的"地址"
+
+### 绝对路径 vs 相对路径
+
+<MultiAnalogy
+  concept="文件路径"
+  analogies={[
+    {
+      angle: "邮政地址",
+      desc: "绝对路径 = 完整邮政地址（中国/北京/朝阳区/xx 路 xx 号）— 不论你在哪，都能送到；相对路径 = '我们公司隔壁那家' — 取决于你现在在哪儿",
+      strength: "强调'参考点'的差异"
+    },
+    {
+      angle: "GPS 坐标 vs 步行指示",
+      desc: "绝对路径 = 经纬度（39.9, 116.4）；相对路径 = '从这里向北 100 米'",
+      strength: "数学直觉"
+    },
+  ]}
+/>
+
+**绝对路径** 从 `/`（根目录）开始：
+
+```
+/home/pi/soundbox/sounds/a.mp3   # 完整路径，从根开始
+/etc/wpa_supplicant/wpa_supplicant.conf
+```
+
+**相对路径** 从你"当前所在目录"开始：
+
+```
+sounds/a.mp3                # 相对于当前目录
+./sounds/a.mp3              # 同上，. = 当前目录
+../sounds/a.mp3             # .. = 父目录
+```
+
+### 三个特殊符号
+
+| 符号 | 意思 | 例子 |
+|---|---|---|
+| `/` | 根目录（最顶层） | `/home/pi/...` |
+| `~` | 当前用户的家目录 | Pi 上 `~` = `/home/pi` |
+| `.` | 当前目录 | `./a.mp3` 等同于 `a.mp3` |
+| `..` | 父目录（上一级） | `../sounds/a.mp3` |
+
+### `cd` + `pwd` 实操理解
+
+```bash
+pwd                    # /home/pi   ← 你现在在哪
+ls                     # 看 home 目录里有啥
+mkdir soundbox         # 创建 soundbox 文件夹
+cd soundbox            # 进去
+pwd                    # /home/pi/soundbox
+
+# 现在「当前目录」是 /home/pi/soundbox
+mkdir sounds
+echo "test" > sounds/a.mp3      # 相对路径，文件落在 /home/pi/soundbox/sounds/
+ls sounds                       # a.mp3
+
+# 同一文件，三种引用方式：
+cat sounds/a.mp3                # 相对路径
+cat ./sounds/a.mp3              # 相对路径（明示）
+cat /home/pi/soundbox/sounds/a.mp3   # 绝对路径
+cat ~/soundbox/sounds/a.mp3     # 用 ~
+# 四种全部输出 "test"
+```
+
+<Misconception
+  myth='`~/sounds/a.mp3` 和 `sounds/a.mp3` 都是相对路径，没区别'
+  truth="只有 `~` 是 home 目录的别名，等同绝对路径；不带 `~` 的 `sounds/a.mp3` 是相对路径，依赖你当前目录在哪。"
+  why="`~` 是 shell 在你敲命令的瞬间展开成 `/home/pi`，所以 `~/sounds/a.mp3` 实际是 `/home/pi/sounds/a.mp3`（绝对）。而 `sounds/a.mp3` 会被解释为「当前目录下的 sounds/a.mp3」。你在 /tmp 跑这个命令，找的就是 /tmp/sounds/a.mp3 — 完全不同！"
+/>
+
+<PredictThenReveal
+  question="我在 ~/soundbox 目录下跑 Python 脚本：play_sound('sounds/a.mp3')。脚本能找到文件。现在我 cd /tmp 然后跑同一个脚本（python3 ~/soundbox/play.py）— 还能找到 a.mp3 吗？"
+  hint="Python 解析 'sounds/a.mp3' 是基于哪个目录？"
+  answer="找不到。Python 用「相对路径」时，参考点是「**你启动 Python 时的当前目录**」（cwd），不是脚本所在目录。你 cd /tmp 后跑脚本，cwd 是 /tmp，Python 找的是 /tmp/sounds/a.mp3 → 不存在 → FileNotFoundError。专业做法：在代码里用 pathlib.Path(__file__).parent / 'sounds' / 'a.mp3' 构造绝对路径，不论从哪里启动都不会错。"
+/>
+
+### Python 里：用 pathlib.Path（现代做法）
+
+老教程会教你用 `os.path.join(...)`。**别用，那是 2010 年的写法**。现在用 `pathlib.Path`：
+
+```python
+from pathlib import Path
+
+# 构造路径
+sound_dir = Path("/home/pi/soundbox/sounds")
+sound_file = sound_dir / "a.mp3"          # / 操作符拼接路径
+
+# 检查文件存在
+if sound_file.exists():
+    print(f"找到了：{sound_file}")
+else:
+    print(f"没找到：{sound_file}")
+
+# 拿到脚本所在目录（关键！）
+script_dir = Path(__file__).parent        # __file__ 是当前 .py 文件路径
+sounds = script_dir / "sounds"            # 脚本同级的 sounds 文件夹
+```
+
+**关键技巧：`Path(__file__).parent / "sounds"`** —— 让脚本无论从哪儿启动，都能找到同级的资源。
+
+### 发声盒文件结构（推荐）
+
+```
+/home/pi/soundbox/
+├── main.py              ← 主脚本
+├── sounds/
+│   ├── meow.mp3
+│   ├── woof.mp3
+│   └── moo.mp3
+└── README.md
+```
+
+代码里：
+
+```python
+from pathlib import Path
+
+SOUND_DIR = Path(__file__).parent / "sounds"
+SOUNDS = list(SOUND_DIR.glob("*.mp3"))    # 自动列出所有 .mp3
+print(f"找到 {len(SOUNDS)} 个音频文件")
+```
+
+<ConceptCheck
+  question="我把音频放在 /home/pi/soundbox/sounds/，脚本在 /home/pi/soundbox/main.py。哪一行 Python 最稳健地引用音频？"
+  options={[
+    {
+      text: '"sounds/a.mp3"',
+      correct: false,
+      why: '相对路径，依赖启动时的 cwd。如果你 cd /tmp 然后跑 python3 ~/soundbox/main.py 就找不到。',
+    },
+    {
+      text: '"~/soundbox/sounds/a.mp3"',
+      correct: false,
+      why: 'Python 不展开 ~（shell 才展开）。这是新手第二大坑。Python 里 ~ 是字符串字面量，不是 home。',
+    },
+    {
+      text: 'Path(__file__).parent / "sounds" / "a.mp3"',
+      correct: true,
+      why: '黄金标准。无论你从哪儿跑脚本（cd /tmp 还是 ~），__file__ 都指向 main.py 的真实位置，.parent 拿到 main.py 所在目录，再拼 sounds/a.mp3 ⇒ 永远正确。',
+    },
+    {
+      text: '"/home/pi/soundbox/sounds/a.mp3"',
+      correct: false,
+      why: '硬编码绝对路径 — 能用，但移植到别人 Pi 或重命名用户就崩。Path(__file__).parent 更通用。',
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**SSH 进 Pi 真做一次**：
+
+```bash
+# 1. 在 home 建个测试目录
+cd ~
+mkdir -p path-test/sounds
+echo "fake-mp3" > path-test/sounds/a.mp3
+
+# 2. 写个小 Python 脚本测试
+cat > path-test/test.py << 'EOF'
+from pathlib import Path
+
+# 方法 1：相对路径（依赖 cwd）
+print("相对：", Path("sounds/a.mp3").exists())
+
+# 方法 2：基于脚本位置（推荐）
+script_dir = Path(__file__).parent
+print("基于脚本：", (script_dir / "sounds/a.mp3").exists())
+
+# 方法 3：~/ 在 Python 里不展开
+print("~ 路径：", Path("~/path-test/sounds/a.mp3").exists())
+
+# 方法 4：~/ 需要 expanduser()
+print("expanduser：", Path("~/path-test/sounds/a.mp3").expanduser().exists())
+EOF
+
+# 3. 在 path-test 目录里跑
+cd ~/path-test
+python3 test.py
+# 输出: 相对: True / 基于脚本: True / ~ 路径: False / expanduser: True
+
+# 4. 切到 /tmp 再跑（看相对路径就死）
+cd /tmp
+python3 ~/path-test/test.py
+# 输出: 相对: False / 基于脚本: True / ~ 路径: False / expanduser: True
+
+# 5. 清理
+rm -rf ~/path-test
+```
+
+观察"相对路径"在不同 cwd 下行为不同 = 你真懂了路径。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '~/soundbox 是绝对路径还是相对路径？',
+      options: [
+        '相对',
+        '绝对（shell 展开 ~ 为 /home/pi）',
+        '看天气',
+        '两者皆是',
+      ],
+      correct: 1,
+      explain: '`~` 是 shell 的 home 别名，敲命令时立刻展开为 /home/pi 等。所以 ~/soundbox = /home/pi/soundbox（绝对）。注意：这只在 shell 有效，Python 字符串里 `~` 不展开。',
+    },
+    {
+      q: 'Python 里 Path("~/file.txt").exists() 总返回 False，即使文件存在 — 为什么？',
+      options: [
+        'Python bug',
+        'Python 不展开 ~，你要用 .expanduser() 或者改用 Path.home()',
+        '~ 不能在 Python 用',
+        '权限问题',
+      ],
+      correct: 1,
+      explain: 'Python 不自动展开 ~（shell 才展开）。两种修法：Path("~/file.txt").expanduser() 或 Path.home() / "file.txt"。',
+    },
+    {
+      q: '我的脚本在 /home/pi/soundbox/main.py，里面 Path(__file__).parent 得到什么？',
+      options: [
+        '/home/pi/soundbox/main.py',
+        '/home/pi/soundbox',
+        '/home/pi',
+        '.',
+      ],
+      correct: 1,
+      explain: '__file__ 是脚本文件的路径，.parent 拿到包含它的目录。所以 main.py 的 .parent = /home/pi/soundbox。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="路径的 4 件事"
+  points={[
+    "绝对路径：从 / 开始，永远确定（/home/pi/soundbox/sounds/a.mp3）",
+    "相对路径：依赖当前目录（cd 后含义变）",
+    "~ 是 home 别名 — shell 展开，Python 不自动展开",
+    "Python 黄金做法：Path(__file__).parent / 'sounds' / 'a.mp3'",
+    "FileNotFoundError 9 成是路径理解错了，不是文件真没了",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给完全不懂代码的朋友解释：什么是「文件路径」？绝对路径和相对路径区别？为什么我的程序老说找不到文件？（60 秒）"
+  scoringRubric={[
+    '✓ 用了至少一个生活类比（邮政地址 / 楼层门牌 / GPS 等）',
+    '✓ 区分清绝对 vs 相对',
+    '✓ 至少提到 ~ 是 home 别名',
+    '✗ 没把 Linux 跟 Windows 混淆（Linux 用 /，Windows 用 \\）',
+  ]}
+  followUps={[
+    {
+      question: '我代码里写 sounds/a.mp3，Pi 上能跑，拷给同事不能跑 — 怎么回事？',
+      hint: '考点：相对路径 + 文件结构差异',
+    },
+    {
+      question: '为什么 Python 不自动展开 ~ ？',
+      hint: '考点：Python 设计选择 — ~ 是 shell 概念，Python 不假设你在 shell',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 → 解锁 <CrossLink to="n19" relation="后续">pygame.mixer 播音频</CrossLink>（路径在这一节会大量用）+ N26。
+
+按 learning_path 下一节是 <CrossLink to="n16" relation="跳过">gpiozero 第一次</CrossLink> —— **激动时刻：第一次让 Pi 控制 LED 亮**。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 90% 的'我的程序怎么找不到文件'是路径问题，不是文件问题。学会 Path(__file__).parent 这个模式，你嵌入式生涯永远不再为路径头疼。"*

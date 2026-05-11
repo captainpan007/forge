@@ -1,0 +1,316 @@
+---
+id: n20
+slug: random-module
+title: random 模块
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 20
+duration: 10
+difficulty: 1
+depends_on: [n13]
+unlocks: [n27]
+tags: [python, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="发声盒每次都响一样的声音">
+
+N19 你做出了发声盒 MVP — 按一下响一声。**但你儿子按了 5 次发现都是同一首"喵～"，立刻失去兴趣**。
+
+发声盒灵魂在于**不可预测**：按一下不知道会响啥，每次都是惊喜。这就是 `random.choice` 5 个字符的工作。
+
+10 分钟教你 random 模块够用的部分，再讲一个微妙的"伪随机"陷阱。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+`random.choice(列表)` 是发声盒最后一块拼图。但 random 不止于此 —— 它在游戏开发、统计模拟、密码学（伪随机 ≠ 真随机！）都用得到。
+
+10 分钟覆盖：
+- choice / randint / shuffle 三件套
+- 伪随机 vs 真随机（不踩坑）
+- 发声盒怎么用让每次响都不一样
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 5 行代码让发声盒每次按按钮响一首不重复的音频，且能控制"完全随机"还是"先随机一轮再洗牌"。
+</Callout>
+
+## What · random 三件套
+
+### `random.choice` —— 从列表挑一个
+
+```python
+import random
+
+sounds = ["meow.mp3", "woof.mp3", "moo.mp3"]
+chosen = random.choice(sounds)
+print(chosen)            # 三个里随机一个
+```
+
+**最常用。** 发声盒的灵魂这一行。
+
+### `random.randint(a, b)` —— 随机整数
+
+```python
+n = random.randint(1, 6)     # 1 到 6 之间（含两端）
+print(n)                     # 1 / 2 / 3 / 4 / 5 / 6 之一
+```
+
+**注意：** randint **两端都含**。`randint(1, 6)` 包括 1 和 6。
+
+### `random.shuffle(列表)` —— 原地打乱
+
+```python
+sounds = ["a", "b", "c", "d"]
+random.shuffle(sounds)        # 原地修改
+print(sounds)                 # 可能 ["c", "a", "d", "b"]
+```
+
+**坑：** `shuffle` 不返回新列表，**直接修改原列表**。要保留原序用 `random.sample(list, len(list))` 拿乱序副本。
+
+<MultiAnalogy
+  concept="random.choice vs shuffle"
+  analogies={[
+    {
+      angle: "抽奖箱",
+      desc: "choice = 闭眼抓一张（抓完放回去，下次可能再抓到同一张）；shuffle = 把整箱倒出来打乱重排",
+      strength: "替换抽样 vs 一次性排列"
+    },
+    {
+      angle: "扑克",
+      desc: "choice = 切牌切到哪是哪；shuffle = 洗牌后从头发",
+      strength: "概念清晰"
+    },
+  ]}
+/>
+
+<Misconception
+  myth="random.choice 用 100 次，每张照样有 100/N 的概率被选到 — 完全均匀"
+  truth="理论上是的，但实际短期序列经常出现「连续 3 次同一个」 — 这不是 bug，是真随机的本质。"
+  why="均匀随机 ≠ 不出现重复。掷骰子 6 次出现两次 5 完全正常 — 概率论说重复是必然。新手看到 random.choice 连出两次同一首音频以为代码错了，其实是统计学。如果你想要'尽量不重复'，用 shuffle 一轮再轮流播。"
+/>
+
+### 发声盒进阶：避免连续重复
+
+```python
+# 简单版：完全随机（可能连续 2 次同一首）
+def play_random():
+    chosen = random.choice(SOUNDS)
+    play(chosen)
+
+# 进阶版：避免上次播过的
+last_sound = None
+def play_random_no_repeat():
+    global last_sound
+    available = [s for s in SOUNDS if s != last_sound]
+    chosen = random.choice(available) if available else random.choice(SOUNDS)
+    last_sound = chosen
+    play(chosen)
+
+# 最佳版：洗牌一轮，轮播完再洗
+queue = []
+def play_random_shuffled():
+    global queue
+    if not queue:
+        queue = SOUNDS[:]       # 拷贝
+        random.shuffle(queue)
+    chosen = queue.pop()
+    play(chosen)
+```
+
+**给儿童玩具推荐"洗牌一轮"模式** —— 每首音频都会出现，不会连续重复，可预期但不死板。
+
+<PredictThenReveal
+  question="我代码 random.choice(['a', 'b', 'c']) 跑 10 次 — 输出全是 'a'。代码哪儿错了？"
+  hint="random 有 seed 概念。"
+  answer="可能你显式调用了 random.seed(0)（或某个固定值）。Python 默认随机种子是当前时间，每次跑不同；但如果你写过 random.seed(N) 后面又没改，每次跑得到一样的序列。删掉 seed 调用、或者改成 random.seed() 不传参（用当前时间）。这是测试场景常见 — 单元测试要可复现就 seed 固定。生产代码不要 seed。"
+/>
+
+### 伪随机 vs 真随机（一分钟科普）
+
+`random` 模块用的是「伪随机数生成器」（Mersenne Twister）。**伪 = 看起来随机但本质是数学算法**：
+
+```python
+random.seed(42)
+print(random.random())     # 0.6394...
+print(random.random())     # 0.0250...
+
+random.seed(42)            # 同样种子
+print(random.random())     # 0.6394... ← 完全一样！
+print(random.random())     # 0.0250... ← 完全一样！
+```
+
+**这就是为什么密码学 / 抽奖系统不能用 `random`** —— 知道种子能预测全部输出。它们用 `secrets` 模块（基于硬件熵 + 加密算法）。
+
+但**发声盒、游戏、模拟器**用 `random` 完全够 —— 你不在乎能不能被预测，只要看起来够"乱"。
+
+<ConceptCheck
+  question="发声盒每次播放完不希望连续 3 次同一首，但允许偶尔重复 — 用哪种方法？"
+  options={[
+    {
+      text: "random.choice — 完全随机",
+      correct: false,
+      why: "可能连续 3 次甚至 4 次同一首（小概率但发生）— 不满足'不希望连续 3 次'。",
+    },
+    {
+      text: "shuffle + 队列 + 播完再洗",
+      correct: true,
+      why: "对。维护一个洗好的队列，每次按按钮 pop 一个；队列空了再 shuffle 一次重新填。这样在一个'轮回'内每首音频都会播一次，不会连续重复，但跨轮回会有'听完一轮新洗牌'的感觉。",
+    },
+    {
+      text: "用 secrets 模块",
+      correct: false,
+      why: "secrets 是加密安全的随机，没解决'不连续重复'问题。",
+    },
+    {
+      text: "手动列表硬编码",
+      correct: false,
+      why: "失去随机性。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**真敲一次**：
+
+```bash
+ssh pi@raspberrypi.local
+
+python3
+```
+
+```python
+>>> import random
+>>> sounds = ["meow", "woof", "moo", "quack"]
+
+>>> # 完全随机 5 次
+>>> for _ in range(5):
+...     print(random.choice(sounds))
+...
+moo
+quack
+meow
+moo
+moo                  ← 看，连续重复正常
+
+>>> # 洗牌
+>>> shuffled = sounds[:]    # 拷贝
+>>> random.shuffle(shuffled)
+>>> print(shuffled)
+['quack', 'meow', 'moo', 'woof']
+
+>>> # 随机整数
+>>> random.randint(1, 100)
+73
+
+>>> # 固定种子复现
+>>> random.seed(42)
+>>> random.choice(sounds)
+'woof'
+>>> random.seed(42)
+>>> random.choice(sounds)
+'woof'              ← 完全一样
+```
+
+跑通这一套 = 你完全掌握 random 够用的部分。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'random.randint(1, 6) 可能返回什么？',
+      options: [
+        '只有 1 到 5',
+        '只有 2 到 6',
+        '1 到 6（含两端）',
+        '0 到 6',
+      ],
+      correct: 2,
+      explain: 'Python 的 randint 两端都含 — 跟其他语言（含起、不含终）不同。要不含终用 randrange(1, 7)。',
+    },
+    {
+      q: 'random.shuffle(my_list) 的特点？',
+      options: [
+        '返回新列表',
+        '原地修改原列表，无返回值',
+        '只在内存里复制',
+        '随机失败',
+      ],
+      correct: 1,
+      explain: 'shuffle 原地修改 — 调用后 my_list 自己变乱序，函数返回 None。不要 `new = random.shuffle(my_list)`（new 永远是 None）。',
+    },
+    {
+      q: '为什么发声盒可以用 random 但银行抽奖系统不能用 random？',
+      options: [
+        '没区别',
+        'random 是伪随机 — 知道种子能预测；银行需要 secrets 模块（加密强随机）',
+        '银行不让用 Python',
+        'random 太慢',
+      ],
+      correct: 1,
+      explain: 'random 的种子是公开算法决定的（默认基于时间）。攻击者如果能猜到时间就能预测后续输出。银行 / 加密用 secrets 模块（基于硬件熵 + 加密算法）。发声盒不在乎预测，random 完全够。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="random 模块发声盒三件套"
+  points={[
+    "random.choice(列表) — 从列表挑一个（最常用）",
+    "random.shuffle(列表) — 原地打乱（注意原地修改）",
+    "random.randint(a, b) — a 到 b 之间随机整数（含两端）",
+    "random 是伪随机 — 测试用 random.seed 复现；生产代码不要 seed",
+    "发声盒推荐 'shuffle + 队列' 模式 — 一轮内不重复",
+    "加密 / 抽奖需要 secrets 模块，不要用 random",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="儿子按发声盒，每次响不同的声。给他解释：电脑怎么'随机'？每次怎么决定播哪首？为什么有时候连续两次同一首？（60 秒）"
+  scoringRubric={[
+    '✓ 用了抽奖箱 / 扔骰子 / 抓牌 等类比',
+    '✓ 解释了"随机不等于轮流" — 重复正常',
+    '✗ 没说"电脑真的随机" — 而是说"用数学'算'出来的看似随机的序列"',
+    '✓ 提到 shuffle 当工具能减少连续重复',
+  ]}
+  followUps={[
+    {
+      question: '如果儿子按 100 次，是不是每首音频都会响差不多 1/N 次？',
+      hint: '考点：大数定律 — 长期均匀，短期可能偏',
+    },
+    {
+      question: '怎么测试我代码的随机真的"够随机"？',
+      hint: '考点：跑几千次统计分布，看是否符合预期 — 单元测试场景',
+    },
+  ]}
+/>
+
+## 完成后
+
+🎉 **Phase 3（软件能力）全部完成！** 你已经掌握了：
+
+- ✅ N13 Python 30 行
+- ✅ N14 import / pip
+- ✅ N15 文件路径
+- ✅ N16 gpiozero 第一次（LED 闪 ⭐）
+- ✅ N17 Button 类
+- ✅ N18 事件驱动编程
+- ✅ N19 pygame.mixer 播音频
+- ✅ N20 random 模块
+
+**发声盒所有"软件 + 简单硬件"能力齐了**。下一阶段 **Phase 4 · 硬件实操** —— 装外壳、接线整理、电源选择、稳定性。**这一阶段结束你儿子就能真玩**。
+
+按 learning_path 下一节是 <CrossLink to="n21" relation="下一节">按钮电路与上拉下拉</CrossLink> — 让你真懂为什么 gpiozero "自动处理"，原理是什么。
+
+---
+
+**JARVIS Note**:
+> *"Sir, Phase 3 是发声盒的'软件灵魂'凝聚的阶段。你的小项目从现在起跨越了一个临界点 —— **它能跑了**。下一阶段从'能跑'到'能给小孩玩'，是工程化的差别。"*

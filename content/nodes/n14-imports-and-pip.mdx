@@ -1,0 +1,278 @@
+---
+id: n14
+slug: imports-and-pip
+title: import 和 pip
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 14
+duration: 10
+difficulty: 2
+depends_on: [n11, n13]
+unlocks: [n16, n19, n40, n58]
+tags: [python, packages, pip, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次需要别人写的代码">
+
+你想让 Pi 控制 LED，搜到一段代码：
+
+```python
+from gpiozero import LED
+led = LED(17)
+led.on()
+```
+
+兴致勃勃 SSH 进 Pi 敲完，按回车 —— **ModuleNotFoundError: No module named 'gpiozero'**。
+
+10 分钟读完你会知道：Python 自带的"标准库"只够基础操作，**90% 的项目都要装第三方库**。pip 就是装库的工具，跟 N11 的 apt 是亲兄弟。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒所有真正"动硬件"的能力都来自第三方库：
+
+- `gpiozero` —— 控制 GPIO 点亮 LED / 读按钮（N16, N17）
+- `pygame` —— 播放音频（N19）
+- `random` —— 随机选音频（N20，标准库自带）
+
+不会 pip = 你看到再好的教程都装不上。10 分钟搞定 pip + 顺手懂 venv（虚拟环境）。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 看到任何 Python 教程贴 `pip install xxx`，你能在 Pi 上装好并 import 进自己的代码。
+</Callout>
+
+## What · import 和 pip 是两件事
+
+### import：在代码里"借用"别人的代码
+
+```python
+import random           # 整个 random 模块都借过来用 random.choice()
+from gpiozero import LED  # 只借 gpiozero 里的 LED 类
+import time as t        # 起别名（少见，但能用 t.sleep()）
+```
+
+模式：**`import 库名` 或 `from 库名 import 类/函数`**。
+
+但**库不会凭空存在** —— 你得先装。这就是 pip 的工作。
+
+<Misconception
+  myth="import 失败就是代码错了 — Python 自己应该有所有库"
+  truth="import 失败 99% 是因为这个库没装在你当前的 Python 环境里。Python 标准库只覆盖最基础的（os / sys / json / random 等），其他全靠 pip。"
+  why="Python 设计哲学 = '小核心 + 大生态'。标准库刻意保持精简，硬件、网络、图像、AI 等领域全部交给第三方库。装这些库就是 pip 的活儿。"
+/>
+
+### pip：Python 的"App Store"
+
+```bash
+pip3 install gpiozero          # 装 gpiozero
+pip3 install pygame            # 装 pygame
+pip3 install requests==2.31.0  # 装指定版本
+pip3 list                      # 看已装啥
+pip3 show gpiozero             # 看某个库的详情
+pip3 uninstall gpiozero        # 删
+```
+
+**注意：** Pi 上 `pip` 可能指 Python 2（已废弃），**永远用 `pip3`** 确保是 Python 3 的 pip。
+
+### 类比
+
+<MultiAnalogy
+  concept="pip"
+  analogies={[
+    {
+      angle: "apt 的 Python 版",
+      desc: "apt 装系统软件（C 程序、命令行工具）；pip 装 Python 库。两者并行 — apt 装 mpg321（命令行播放器），pip 装 pygame（Python 内播放器）",
+      strength: "横向对比 N11 学的 apt"
+    },
+    {
+      angle: "App Store",
+      desc: "pip install xxx = 点'获取'。仓库在 pypi.org（Python Package Index），全部免费",
+      strength: "用户直觉"
+    },
+    {
+      angle: "npm",
+      desc: "Node.js 用 npm install，Python 用 pip install — 同一个概念在不同语言生态",
+      strength: "前端开发者秒懂"
+    },
+  ]}
+/>
+
+### Pi 新手第一坑：`sudo pip3 install`
+
+```bash
+sudo pip3 install gpiozero    # ⚠ 不推荐！
+```
+
+为什么不推荐：
+
+- **污染系统 Python**：装到 /usr/lib/python3/ 里，可能跟 Pi OS 自带的库冲突
+- **后续删除困难**：装错了不知道清哪
+- **安全风险**：第三方库代码以 root 运行
+
+**推荐做法 1：用户级安装（--user）：**
+
+```bash
+pip3 install --user gpiozero  # ✓ 装到 ~/.local/，干净
+```
+
+**推荐做法 2：用虚拟环境（venv）：**（更专业 / 多项目时必备）
+
+```bash
+# 在你的项目目录下：
+cd ~/soundbox
+python3 -m venv venv          # 创建 venv 文件夹
+source venv/bin/activate      # 激活（命令行前面会显示 (venv)）
+pip3 install gpiozero pygame  # 装在 venv 里，跟其他项目隔离
+# ... 写代码 / 跑脚本 ...
+deactivate                    # 退出虚拟环境
+```
+
+<Callout type="info" icon="🧠">
+  **Pi 上 gpiozero 通常预装。** Raspberry Pi OS 出厂带 RPi.GPIO + gpiozero。如果 import 失败可能是 Pi OS 版本太老 — 但 N11 的 apt update + upgrade 会把它升到新版。
+</Callout>
+
+<PredictThenReveal
+  question="我在 Mac 上 pip3 install gpiozero 装成功了，敲 import gpiozero 也没报错。然后我把代码复制到 Pi 上跑 — 一样能用吗？"
+  hint="想想 pip 装到哪儿了 — 装在 Mac 上还是 Pi 上？"
+  answer="不行。pip 是装在你当前操作的机器上的 Python 环境。Mac 上装的 gpiozero 在 Mac 上能 import，但 Mac 没有真 GPIO 硬件，调用 LED.on() 会报错。你必须 ssh 进 Pi、在 Pi 上跑 pip3 install gpiozero（或者用预装的），代码才能真正控制 Pi 上的 GPIO。"
+/>
+
+<ConceptCheck
+  question="我想在我项目 soundbox 里用 gpiozero，但又不想动 Pi 系统 Python — 推荐做法？"
+  options={[
+    {
+      text: "sudo pip3 install gpiozero — 装到系统",
+      correct: false,
+      why: "污染系统 Python，不推荐。如果换 OS 或装其他项目可能冲突。",
+    },
+    {
+      text: "cd ~/soundbox && python3 -m venv venv → source venv/bin/activate → pip3 install gpiozero",
+      correct: true,
+      why: "用虚拟环境隔离 — 项目内的库跟系统 Python 互不影响。这是 Python 社区共识的最佳实践。多项目时尤其重要。",
+    },
+    {
+      text: "在 Pi 浏览器搜索 gpiozero 然后下载",
+      correct: false,
+      why: "pip 已经帮你做了下载+解压+安装。手动下载是 20 年前的搞法，现在没人这么做。",
+    },
+    {
+      text: "拷贝同事的代码就行不用装",
+      correct: false,
+      why: "代码 ≠ 库。import gpiozero 那行需要 gpiozero 真实装在你的 Python 环境里。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**SSH 进 Pi 真做一次**：
+
+```bash
+# 1. 看 gpiozero 已装没（Pi OS 预装）
+python3 -c "import gpiozero; print(gpiozero.__version__)"
+# 应该输出版本号像 "2.0.1"
+
+# 2. 装一个新库试试（pip3 而不是 pip）
+pip3 install --user pyfiglet   # 装一个 ASCII art 库
+
+# 3. 用一下
+python3 -c "import pyfiglet; print(pyfiglet.figlet_format('Hello'))"
+# 应该看到 ASCII 字符画
+
+# 4. 看你装了哪些用户级库
+pip3 list --user
+
+# 5. 删掉这个测试库
+pip3 uninstall pyfiglet -y
+```
+
+跑通 = 你掌握了 Python 装库全流程。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'import 跟 pip install 区别？',
+      options: [
+        '一回事',
+        'pip install 是装库到环境；import 是代码里加载已装的库',
+        'pip 是 Python 2，import 是 Python 3',
+        'pip 是黑客用的',
+      ],
+      correct: 1,
+      explain: 'pip install 是「装」(下载 + 部署到 Python 环境)；import 是「用」(代码里告诉 Python "我要用这个库")。先装后用。',
+    },
+    {
+      q: '为什么不推荐 sudo pip install？',
+      options: [
+        '速度慢',
+        '装到系统 Python，可能跟系统库冲突 + 难清理 + 第三方代码以 root 跑',
+        'sudo 大写了',
+        '没问题，sudo 才安全',
+      ],
+      correct: 1,
+      explain: '推荐 pip3 install --user 或 venv 隔离。系统 Python 是 OS 一部分，不要动。',
+    },
+    {
+      q: 'venv 是干啥的？',
+      options: [
+        '安全工具',
+        '虚拟环境 — 给每个项目独立的 Python 库空间，互不影响',
+        '网络代理',
+        '压缩工具',
+      ],
+      correct: 1,
+      explain: 'venv 让你在项目 A 装 requests 2.x，项目 B 装 3.x，两者互不影响。专业项目标配。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="Python 装库三步法"
+  points={[
+    "标准库（random/os/json 等）：import 即用，免装",
+    "第三方库：先 pip3 install --user xxx，再 import",
+    "项目专用：用 venv 隔离（python3 -m venv venv && source venv/bin/activate）",
+    "永远用 pip3 不用 pip（Pi 上 pip 可能指 Python 2）",
+    "pip = Python 的 apt — 一句话总结",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给完全没写过代码的朋友解释：什么是 import？什么是 pip？为什么 import 失败了我要去 pip install？（60 秒）"
+  scoringRubric={[
+    '✓ 用了 App Store / 工具箱 等生活类比',
+    '✓ 解释了 import = 借用 / pip = 安装',
+    '✓ 提到 Python 标准库 vs 第三方库的区别',
+    '✗ 没用未解释的术语（"模块"、"包"等若用要先翻译）',
+  ]}
+  followUps={[
+    {
+      question: '我能不能把别人的 .py 文件直接拷贝过来用，避免 pip？',
+      hint: '考点：依赖传递 — 那个文件可能还依赖别的库',
+    },
+    {
+      question: '为什么 Mac 装的 Python 库 SSH 进 Pi 用不了？',
+      hint: '考点：环境隔离 — 两台机器是独立的 Python',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 在 Pi 上真做过 pip install → 解锁 <CrossLink to="n16" relation="下一节">gpiozero 第一次</CrossLink>（点亮第一个 LED）+ N19（播音频）+ N40 + N58。
+
+按 learning_path 接下来是 <CrossLink to="n15" relation="按序">N15 · 文件路径实操</CrossLink> —— 因为后面要读音频文件，必须懂路径。
+
+---
+
+**JARVIS Note**:
+> *"Sir, pip 是 Python 工程师的呼吸。你以后开任何 Python 项目第一件事永远是 'pip install xxx' —— 跟 N11 学的 'sudo apt update' 一样形成肌肉记忆。"*

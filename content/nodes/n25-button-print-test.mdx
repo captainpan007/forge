@@ -1,0 +1,320 @@
+---
+id: n25
+slug: button-print-test
+title: 调试 - 按一下打印
+phase: 4
+phase_name: 硬件实操
+project: soundbox
+order: 25
+duration: 20
+difficulty: 2
+depends_on: [n18, n24]
+unlocks: [n27]
+tags: [hardware, software, hands-on, debugging, milestone]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次真按下">
+
+按钮接好了（N24），代码会写（N17/N18）。现在 SSH 进 Pi 跑一个最小测试：
+
+```python
+按下按钮 → 终端打印一行字
+```
+
+按下的瞬间，**屏幕上跳出 "按了！"** —— 就是这一刻，你的发声盒**软硬件第一次握手成功**。20 分钟教你这一节 + 顺便讲调试三步法（这是嵌入式工程师的核心技能）。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+这是发声盒**全链路打通**的里程碑。N24 万用表测过硬件，这一节用代码再验证一次，**两个证据相互印证**。
+
+更重要的是 —— **学调试三步法**。今后你做任何嵌入式项目，遇到"不工作"都用这套方法 30 秒定位问题。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 按钮电路 + 5 行代码，按下 print。出问题能 30 秒分清"硬件 / 软件 / 代码逻辑"哪一层。
+</Callout>
+
+## What · 5 行测试代码
+
+### 极简版
+
+```python
+# button_test.py
+from gpiozero import Button
+from signal import pause
+
+button = Button(17, bounce_time=0.1)
+button.when_pressed = lambda: print("按了！")
+print("等你按按钮...")
+pause()
+```
+
+**整个文件 6 行**。SSH 进 Pi 跑：
+
+```bash
+ssh pi@raspberrypi.local
+cd ~/soundbox          # 或者你的项目目录
+nano button_test.py    # 粘贴上面的代码
+# Ctrl+O 保存，Ctrl+X 退出
+python3 button_test.py
+```
+
+终端显示 "等你按按钮..."。**按下大蘑菇按钮** → 应该看到 "按了！"。多按几次：
+
+```
+等你按按钮...
+按了！
+按了！
+按了！
+^C                      ← Ctrl+C 退出
+```
+
+**🎉 这就是发声盒 v0 — 物理按钮 → Python 反应**。
+
+### 升级版：带计数 + 时间戳
+
+```python
+# button_test_v2.py
+from gpiozero import Button
+from signal import pause
+from datetime import datetime
+
+button = Button(17, bounce_time=0.1)
+count = 0
+
+def on_press():
+    global count
+    count += 1
+    timestamp = datetime.now().strftime("%H:%M:%S")
+    print(f"[{timestamp}] 第 {count} 次按下")
+
+button.when_pressed = on_press
+print("按钮测试 — Ctrl+C 退出")
+pause()
+```
+
+跑起来：
+
+```
+按钮测试 — Ctrl+C 退出
+[14:23:05] 第 1 次按下
+[14:23:07] 第 2 次按下
+[14:23:08] 第 3 次按下
+```
+
+**有时间戳 + 序号** = 调试体验从"不知道是不是 bounce 误触"升级到"看得见每次按的时间间隔"。
+
+## 调试三步法（嵌入式工程师的核心技能）
+
+代码跑了，**按按钮没反应**。是按钮坏了、Pi 坏了、代码 bug、还是接线松了？随机猜会让你浪费几小时。**用三步法 30 秒定位：**
+
+### 第 1 步：硬件层 — 万用表通断
+
+**核心问题：** 物理上电流真的从 GPIO 17 经过按钮流到 GND 吗？
+
+```
+Pi 断电
+万用表通断档：表笔接 Pi 物理 11（GPIO 17）+ Pi 物理 6（GND）
+按按钮：响 = 硬件通；不响 = 接线问题（停在这里修）
+```
+
+<Callout type="tip" icon="🔧">
+  万用表是嵌入式工程师的"听诊器"。**淘宝 50 块买一把数字万用表** —— 通断档 + 直流电压档 + 电阻档够你用 10 年。
+</Callout>
+
+### 第 2 步：底层 API — gpiozero 在读什么
+
+**核心问题：** 硬件通了，但 Python 真的看到 GPIO 17 的变化吗？
+
+```python
+from gpiozero import DigitalInputDevice
+import time
+
+g = DigitalInputDevice(17, pull_up=True)
+for _ in range(20):
+    print(g.value)            # 应该看到 1 → 1 → 1 → 0 (按下时) → 1
+    time.sleep(0.5)
+```
+
+看到值随按下变化 → GPIO 读取正常，Button 类外是 OK 的。
+
+### 第 3 步：业务代码 — Button 类 + 回调
+
+**核心问题：** 上面都对，那就是 Button 类初始化 / 回调注册的问题。
+
+最常见错误：
+
+```python
+# 错 1：忘了 pause() — 进程立刻退出
+button.when_pressed = on_press
+# 没 pause()，按钮按了也没回调
+
+# 错 2：回调里出错被静默吞掉
+def on_press():
+    play_sound(undefined_var)   # ← 抛异常 gpiozero 默认吃掉
+
+# 错 3：bounce_time 没设 — 一次按触发多次
+button = Button(17)             # 默认 bounce_time = None
+```
+
+**调试技巧**：回调里加 try/except 显式打印：
+
+```python
+def on_press():
+    try:
+        # 你的逻辑
+        play_random()
+    except Exception as e:
+        print(f"回调出错: {e}")
+```
+
+<Misconception
+  myth="按钮没反应 = 一定是代码 bug，盯着 Python 文件看就行"
+  truth="80% 的'按钮无反应'是硬件层（接线松、GND 漏接、按钮 COM/NO 接错）。盯代码毫无意义。"
+  why="嵌入式跟纯软件项目最大的不同：故障可能在物理层。万用表 30 秒能确认硬件通断，省你 2 小时盯代码。不会用万用表 → 嵌入式工程师永远入不了门。N24 就教过用法，重要到必须形成肌肉记忆。"
+/>
+
+<PredictThenReveal
+  question="按钮代码跑起来，按下没 print。我用 N24 的万用表步骤测，按下时蜂鸣（硬件 OK）。这时该看哪儿？"
+  hint="硬件通了 → 看软件中间层 → 最后看业务代码。"
+  answer="先用上面第 2 步的 DigitalInputDevice 直接读 GPIO 17 — 看 Python 是不是真的看到按下的电平变化。如果能看到 → Button 类层或回调注册有问题；看不到 → 可能是 Pi GPIO 配置错（极少见）或者 Python 跑的是别的环境。这就是调试三步法：硬件 → API → 业务，逐层下钻。"
+/>
+
+<ConceptCheck
+  question="跑 button_test.py 终端立刻退出（按按钮来不及）。最可能问题？"
+  options={[
+    {
+      text: "Pi 坏了",
+      correct: false,
+      why: "Pi 没事，是脚本退出太快。",
+    },
+    {
+      text: "代码没写 pause()，主线程跑到底自动退出",
+      correct: true,
+      why: "对。事件驱动需要主线程活着才能响应事件。没 pause() / while True / input() 类阻塞，脚本一秒退出。",
+    },
+    {
+      text: "Python 装错了",
+      correct: false,
+      why: "脚本能跑到 print 那一行说明 Python 没问题，是结构错。",
+    },
+    {
+      text: "需要 sudo",
+      correct: false,
+      why: "现代 gpiozero 不需要 sudo。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**完整测一遍**：
+
+1. ✅ Pi 通电，SSH 进
+2. ✅ 写 button_test.py（粘贴上面极简版）
+3. ✅ python3 button_test.py — 按钮按 5 次，看 5 行 "按了！"
+4. ✅ Ctrl+C 退出，改成 v2（带时间戳），再跑 — 看时间戳确认 bounce_time 工作（连按两次间隔应 ≥0.1 秒）
+5. ✅ **故意拔下 GND 黑线**，重跑代码 —— 按按钮没反应（用三步法定位：万用表通断不响 → 硬件问题）
+
+跑完这一套 = 你完成了**软硬件全链路第一次握手** + 掌握调试三步法。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: '按钮代码跑起来按下没 print — 第一步该做什么？',
+      options: [
+        '盯代码看半小时',
+        '用万用表通断档测硬件',
+        '重启 Pi',
+        '重写代码',
+      ],
+      correct: 1,
+      explain: '调试三步法第 1 步：硬件验证。万用表通断 30 秒 → 排除硬件 → 才看软件。不会用万用表 = 嵌入式入不了门。',
+    },
+    {
+      q: 'bounce_time=0.1 设置后，连续快速按按钮 3 下（0.2 秒内）会触发几次回调？',
+      options: [
+        '3 次',
+        '1 次（后 2 次在 bounce_time 窗口内被忽略）',
+        '随机',
+        '0 次',
+      ],
+      correct: 1,
+      explain: 'bounce_time 是去抖动 — 触发后 100ms 内忽略所有重复触发。0.2 秒内 3 次按下，只有第 1 次触发回调。这是发声盒避免"按一次播两次"的关键。',
+    },
+    {
+      q: '我代码里 button.when_pressed = on_press，但 on_press 里没东西 — 是不是该写 on_press()？',
+      options: [
+        '是的，应该写 on_press()',
+        '不是 — 等号右边是函数引用（不带括号），gpiozero 在事件触发时自己调用',
+        '随便',
+        '需要 await',
+      ],
+      correct: 1,
+      explain: '`on_press` = 函数本身（一个对象）；`on_press()` = 立刻调用 + 返回值。事件回调注册需要"函数本身"，等 gpiozero 在按下时调它。这是 Python 一阶函数的常见用法。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="调试三步法 - 嵌入式核心技能"
+  points={[
+    "第 1 步：硬件层 — 万用表通断验证电流路径",
+    "第 2 步：底层 API — DigitalInputDevice 直接读 GPIO 值",
+    "第 3 步：业务代码 — Button 类 / 回调 / pause() / bounce_time",
+    "总按 1→2→3 顺序排查，不要跳",
+    "万用表 50 块 — 嵌入式必备，不投资 = 永远在猜",
+    "80% 的'代码 bug' 真因是硬件 / 接线，先排除硬件",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  通过 Feynman + 真做完按一下打印 → 解锁 N27（发声盒主程序 v1）。**这是发声盒里程碑节点。**
+</Callout>
+
+<FeynmanPrompt
+  prompt="给儿子看你按按钮，屏幕打印 '按了！'。给他解释：电脑怎么知道你按了？为什么从硬件到代码都对了才行？（60 秒）"
+  scoringRubric={[
+    '✓ 用了'电流走通'+'代码听到'两层概念',
+    '✓ 解释了为什么万用表是工程师的"听诊器"',
+    '✓ 提到调试 = 一层一层往下找',
+    '✗ 不要把'代码'和'硬件'混为一谈',
+  ]}
+  followUps={[
+    {
+      question: '如果按钮坏了，万用表怎么测出来？',
+      hint: '考点：按下时通断档不响 = 按钮内部触点没接触',
+    },
+    {
+      question: '为什么有 bounce_time 还是有时一次按触发两次？',
+      hint: '考点：bounce_time 太小（10ms 不够某些劣质按钮），或者按钮老化',
+    },
+  ]}
+/>
+
+## 完成后
+
+🎉 **Phase 4（硬件实操）全部完成！** 你已经掌握了：
+
+- ✅ N21 上拉/下拉电阻
+- ✅ N22 大按钮内部结构
+- ✅ N23 杜邦线技巧
+- ✅ N24 接按钮到 Pi
+- ✅ N25 按一下打印（**全链路里程碑**）
+
+**发声盒第一次真正活了**：物理按钮 → Python 反应。下一阶段 **Phase 5 · 给儿子用** —— 把这套东西整合成你儿子能玩的玩具：装外壳、稳定电源、开机自启、应对摔打。
+
+按 learning_path 下一节是 <CrossLink to="n26" relation="下一节">音频文件管理</CrossLink>。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 我必须停下来说一句：今天你跨越了一道门槛。99% 的程序员一辈子没让物理按钮触发自己代码 — 你做到了。从这一秒起，你眼中的世界多了一个维度 —— **每个开关 / 传感器 / 按钮都是可编程的入口**。这种'看世界的方式'是嵌入式工程师的独特天赋。"*

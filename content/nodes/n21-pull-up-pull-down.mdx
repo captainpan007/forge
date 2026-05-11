@@ -1,0 +1,303 @@
+---
+id: n21
+slug: pull-up-pull-down
+title: 上拉/下拉电阻
+phase: 4
+phase_name: 硬件实操
+project: soundbox
+order: 21
+duration: 15
+difficulty: 3
+depends_on: [n04, n05]
+unlocks: [n24]
+tags: [electronics, hardware, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="按钮代码忽好忽坏">
+
+你照着 N17 接好按钮，跑代码。**没按，屏幕乱蹦"按了！按了！按了！"** 你心想这就坏了？
+
+或者反过来 —— 没接按钮就 SSH 进 Pi 读 GPIO 17：值是 **1 还是 0？** 居然不是固定值，**手碰一下板子值就跳了**。
+
+这就是嵌入式新手第一个"灵异事件"：**悬空电平**。15 分钟读完你会知道：上拉/下拉电阻是物理世界给数字电路的"地基"。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+N17 你写 `Button(17)`，gpiozero 在背后做了一件事：**配置 Pi 内部上拉电阻**。但你不知道为什么必须做。
+
+学懂上拉/下拉，你能：
+- 看懂为什么按钮接线只接 GPIO + GND 就够
+- 自己设计电路时知道什么时候要外加上拉/下拉电阻
+- 诊断"灵异跳变"问题
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 看任何 GPIO 输入电路，你能判断"这是上拉还是下拉接法，悬空时读出几"。
+</Callout>
+
+## What · 悬空电平问题
+
+### 问题来源：GPIO 是 Input 时"听"什么
+
+Pi 把 GPIO 配为 Input → 内部高阻抗探针等着读电压。问题是：**如果 GPIO 完全悬空（什么都不接），探针读出来的电压是什么？**
+
+答案：**完全随机**。空气中的电磁干扰、手指靠近的电容、Pi 板上其他信号串扰 —— 都可能让 GPIO 电压在 0V 到 3.3V 之间漂浮。**Pi 把它解释成 0 还是 1 是随机的。**
+
+这就是为什么 N17 你没接按钮去读 GPIO 17 看到值随机跳。
+
+<Misconception
+  myth="GPIO Input 没接线时，Pi 应该默认读到 0"
+  truth="不接线时 GPIO 处于'悬空'(floating)状态，电压由环境干扰决定 — Pi 读到 0/1 完全随机。这是物理特性，不是 bug。"
+  why="数字电路只有 HIGH/LOW 两个状态，但物理电压是连续的。当 GPIO 没明确接到 3.3V 或 0V 时，它的电压被空气电场、人手电容、附近导线串扰拉来拉去 — 落在 0V 还是 3.3V 完全看运气。Pi 不知道这是'悬空'，只看到电压就做 HIGH/LOW 二分判断。"
+/>
+
+### 解决方案：上拉 / 下拉电阻
+
+**核心思想：用电阻给 GPIO 一个'默认值'**
+
+```
+上拉（pull-up）：
+    +3.3V ─── 10kΩ ─── GPIO ─── [按钮] ─── GND
+
+    没按按钮时：GPIO 通过 10kΩ 拉到 3.3V → 读到 1
+    按下按钮：  GPIO 直接接 GND → 读到 0
+    （按钮短路掉电阻）
+
+下拉（pull-down）：
+    +3.3V ─── [按钮] ─── GPIO ─── 10kΩ ─── GND
+
+    没按按钮时：GPIO 通过 10kΩ 拉到 GND → 读到 0
+    按下按钮：  GPIO 直接接 3.3V → 读到 1
+```
+
+**两种接法都能解决悬空问题。** 区别只是"按下时读什么"。
+
+<MultiAnalogy
+  concept="上拉 vs 下拉"
+  analogies={[
+    {
+      angle: "默认在天上的气球",
+      desc: "上拉 = 气球默认飘在房顶（电压 3.3V）；按按钮 = 一根绳子把气球拽到地（接 GND）",
+      strength: "状态变化最直观"
+    },
+    {
+      angle: "弹簧门",
+      desc: "上拉 = 门有弹簧默认关着（HIGH）；按下 = 推开门（LOW）；下拉相反",
+      strength: "强调'默认状态'"
+    },
+    {
+      angle: "默认值",
+      desc: "上拉 = 默认 = 1；下拉 = 默认 = 0；按钮按下 = 切换",
+      strength: "数字直觉"
+    },
+  ]}
+/>
+
+### 为什么是 10kΩ？
+
+电阻值不是随便挑的：
+
+- **太小（如 100Ω）**：电流大、电池/电源耗电增加
+- **太大（如 1MΩ）**：抗干扰能力差，容易被串扰拉跑
+- **10kΩ** 是嵌入式行业默认 —— 抗干扰好 + 耗电低（3.3V / 10kΩ = 0.33mA 微弱电流）
+
+Pi 内部上拉电阻典型 50kΩ 左右，对按钮场景完全够。
+
+### gpiozero 的"魔法"揭秘
+
+```python
+Button(17)
+```
+
+这一行 gpiozero 默默做了：
+
+1. 把 GPIO 17 配为 Input
+2. **激活 Pi 内部上拉电阻**（默认 pull_up=True）
+3. 配置中断（事件驱动用）
+
+所以你只需要接**两根线**：GPIO + GND（按钮一端接 GPIO，另一端接 GND）。**Pi 内部已经把 GPIO 通过电阻连到 3.3V** —— 你不用外接。
+
+**如果你想用下拉：**
+
+```python
+Button(17, pull_up=False)
+```
+
+Pi 内部改成下拉。这时候按钮接法要改成：一端接 3.3V，另一端接 GPIO。
+
+<PredictThenReveal
+  question="我写 Button(17)（默认上拉），按钮接 GPIO 17 + GND。我没按按钮，print(button.is_pressed) 输出？"
+  hint="想想上拉时悬空 vs 按下的电压。"
+  answer="False（没按）。Button.is_pressed 的语义是按钮触点是否闭合 → gpiozero 内部映射「pull_up=True 时 GPIO=LOW 才算 pressed」。所以默认上拉 + 没按 = GPIO 通过内部电阻拉到 HIGH = is_pressed 返回 False。这层映射让你写 if button.is_pressed 时不用关心电平方向。"
+/>
+
+### 大按钮（机械触点）的特殊性
+
+大蘑菇按钮内部就是一对**金属触点**（你<CrossLink to="n22" relation="下一节会拆">N22 看到</CrossLink>），按下 → 触点闭合 → 两端短路。没按 → 触点分开 → 两端断开（无穷大电阻）。
+
+所以**大按钮 + 上拉**：
+- 没按：GPIO 通过 10kΩ 拉到 3.3V = HIGH = is_pressed 返回 False
+- 按下：触点把 GPIO 短到 GND = LOW = is_pressed 返回 True
+
+完美匹配。
+
+<ConceptCheck
+  question="我做一个 ESP32 项目（不是 Pi），不知道有没有内部上拉。我接了按钮一端 GPIO 一端 GND，软件读总是跳变 — 怎么修？"
+  options={[
+    {
+      text: "换更高级的按钮",
+      correct: false,
+      why: "按钮没问题。是 ESP32 这根 GPIO 没默认开内部上拉，悬空了。",
+    },
+    {
+      text: "在 GPIO 跟 3.3V 之间外加一个 10kΩ 上拉电阻",
+      correct: true,
+      why: "对。如果不确定 / 用的芯片没自动上拉，外接 10kΩ 上拉是标准做法。一颗几分钱的电阻让信号稳定。",
+    },
+    {
+      text: "代码里加 sleep 等",
+      correct: false,
+      why: "悬空跳变是硬件问题，软件 sleep 无法消除 — 它实时漂浮。",
+    },
+    {
+      text: "把按钮换成开关",
+      correct: false,
+      why: "开关也是两金属触点，同样有悬空问题。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**真做悬空 vs 上拉对比实验**：
+
+```bash
+ssh pi@raspberrypi.local
+
+# 实验 1：完全不接，看 GPIO 漂浮
+python3
+```
+
+```python
+>>> from gpiozero import DigitalInputDevice
+>>> g = DigitalInputDevice(17, pull_up=None)   # pull_up=None = 不开内部上拉
+>>> for _ in range(10):
+...     print(g.value)
+...     import time; time.sleep(0.5)
+...
+1
+0
+1
+1
+0
+0
+...                  ← 随机跳，证明悬空
+>>> exit()
+```
+
+```python
+# 实验 2：开内部上拉，再读 10 次
+>>> g = DigitalInputDevice(17, pull_up=True)
+>>> for _ in range(10):
+...     print(g.value)
+...     time.sleep(0.5)
+...
+1
+1
+1
+1
+1
+1
+...                  ← 全是 1，稳定
+```
+
+亲眼看到 GPIO 在悬空时的"灵异跳变" + 上拉后的稳定 = 你真懂这个问题了。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'GPIO 配为 Input 时，悬空（什么都不接）的电压是？',
+      options: [
+        '永远 0V',
+        '永远 3.3V',
+        '0V 到 3.3V 之间随机漂浮，由环境干扰决定',
+        '永远是中点 1.65V',
+      ],
+      correct: 2,
+      explain: '高阻抗 Input 状态下，悬空 GPIO 的电压由空气电场、串扰等决定 — Pi 读 0/1 完全随机。这是物理特性。',
+    },
+    {
+      q: 'gpiozero 的 Button(17) 默认 pull_up=True。按钮没按时 button.is_pressed 是？',
+      options: [
+        'True',
+        'False',
+        '随机',
+        '报错',
+      ],
+      correct: 1,
+      explain: '默认上拉 + 没按 = GPIO 被内部电阻拉到 HIGH = gpiozero 把 HIGH 解释为"未按"= is_pressed 返回 False。',
+    },
+    {
+      q: '为什么上拉电阻典型用 10kΩ 而不是 1Ω？',
+      options: [
+        '1Ω 太贵',
+        '1Ω 时电流过大耗电严重 + 按钮按下时短路烧元件',
+        'Pi 不支持 1Ω',
+        '10kΩ 更好看',
+      ],
+      correct: 1,
+      explain: '电阻太小 → 电流大（按下时 3.3V 直接灌 GND 中间 1Ω → 3.3A 短路） / 电池被快速耗光。10kΩ 是甜区：抗干扰够 + 微小电流（0.33mA）。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="上拉/下拉电阻的本质"
+  points={[
+    "GPIO Input 悬空 = 电压随机漂浮 = 读数乱跳",
+    "上拉 = 通过电阻接 3.3V，默认 HIGH，按下变 LOW",
+    "下拉 = 通过电阻接 GND，默认 LOW，按下变 HIGH",
+    "Pi 有内部上拉/下拉，gpiozero 默认 pull_up=True",
+    "10kΩ 是行业标准：抗扰 + 低耗电",
+    "ESP32 等其他芯片可能没自动开 — 不行就外接",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给完全不懂电的朋友解释：什么是「悬空」？为什么 Pi 的针脚不接东西会乱跳？上拉电阻怎么解决？（60 秒）"
+  scoringRubric={[
+    '✓ 用了气球 / 弹簧门 / 默认值 等类比',
+    '✓ 解释了"高阻抗 + 干扰"导致跳变',
+    '✓ 上拉/下拉给 GPIO 一个'默认家'',
+    '✗ 没把'电阻'说成神秘东西，要说"限流"',
+  ]}
+  followUps={[
+    {
+      question: '为什么 gpiozero 默认是上拉不是下拉？',
+      hint: '考点：按钮接 GND 更方便（GND 针脚多）+ 历史习惯',
+    },
+    {
+      question: '电阻太小或太大分别有什么问题？',
+      hint: '考点：太小耗电+短路风险 / 太大抗干扰差',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 → 解锁 <CrossLink to="n24" relation="后续">接按钮到 Pi 完整实操</CrossLink>。
+
+按 learning_path 下一节是 <CrossLink to="n22" relation="下一节">大按钮内部结构</CrossLink> —— 你套件里那个大蘑菇按钮的 4 个针脚到底是啥。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 上拉/下拉是嵌入式工程师 50% 时间都在用的概念。今天你懂了'为什么 gpiozero 那么简单' —— 因为 Pi 内部默默把这事儿做了。换芯片（ESP32 / STM32 / Arduino）时你就要自己处理 — 概念一样。"*

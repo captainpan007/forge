@@ -1,0 +1,339 @@
+---
+id: n18
+slug: event-driven
+title: 事件驱动编程
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 18
+duration: 20
+difficulty: 3
+depends_on: [n17]
+unlocks: [n25, n27]
+tags: [python, programming, paradigm, fundamentals, shared]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="忙等 vs 优雅">
+
+N17 你写了两种监听按钮的代码：
+
+```python
+# 方式 A：忙等
+while True:
+    if button.is_pressed:
+        play_sound()
+    time.sleep(0.05)
+
+# 方式 B：事件
+button.when_pressed = play_sound
+pause()
+```
+
+**两段代码都"工作"，但完全不同的编程范式。** 方式 A 让 Pi 一直转圈检查（耗 CPU）；方式 B 让 Pi 闲着，事件触发时再被唤醒。
+
+20 分钟读完你会明白：**事件驱动**是嵌入式 + Web 后端 + GUI 应用的统治范式。学会这个心智模型，你能读懂 90% 的现代代码。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒做完后 Pi 24 小时通电待命 —— **不能让 CPU 100% 忙等**。需要"安静等待按钮事件"的编程模式。
+
+这一节是从"按部就班写代码"升级到"响应式系统设计"的关键。学懂后：
+- N19 / N20 你写发声盒主程序时知道用什么结构
+- 将来做 Web 后端（异步处理）、GUI 应用（鼠标键盘事件）、IoT（传感器事件）—— 一脉相承
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 看到任何「响应外界输入」的需求，第一反应是"事件回调"而不是"轮询检查"。
+</Callout>
+
+## What · 轮询 vs 事件
+
+### 多角度类比
+
+<MultiAnalogy
+  concept="轮询 vs 事件驱动"
+  analogies={[
+    {
+      angle: "盯快递 vs 等门铃",
+      desc: "轮询 = 每分钟去开门看快递到没；事件 = 装个门铃，到了快递员按一下，你听到再去开门",
+      strength: "最贴切的生活类比"
+    },
+    {
+      angle: "打电话 vs 等回电",
+      desc: "轮询 = 每 5 分钟打过去问'修好了吗'；事件 = 修完师傅自动回电话",
+      strength: "强调'不打扰对方'"
+    },
+    {
+      angle: "刷新邮箱 vs 邮件通知",
+      desc: "轮询 = 每分钟手动按一下'刷新'；事件 = 设置'新邮件推送'，来了系统通知",
+      strength: "数字化场景"
+    },
+  ]}
+/>
+
+### 轮询（Polling）—— 主动查
+
+```python
+import time
+from gpiozero import Button
+
+button = Button(17)
+
+while True:
+    if button.is_pressed:
+        print("按了")
+    time.sleep(0.05)         # 必须 sleep，否则 CPU 爆
+```
+
+**特征：**
+- 你的主循环掌控节奏
+- 简单直接，代码线性好读
+- 缺点：CPU 一直转，错过短按，多事件混着难管理
+
+### 事件驱动（Event-driven）—— 被动响应
+
+```python
+from gpiozero import Button
+from signal import pause
+
+button = Button(17)
+button.when_pressed = lambda: print("按了")
+pause()                      # 永远阻塞 — 让事件循环活着
+```
+
+**特征：**
+- 你只声明"什么事件 → 触发什么动作"
+- 程序大部分时间在睡眠，事件来了硬件中断唤醒
+- CPU ≈ 0%，多事件互不干扰
+- 缺点：代码"跳来跳去"难一眼读懂
+
+<Misconception
+  myth="事件驱动比轮询'更新更高级' — 应该全用事件驱动"
+  truth="两种范式各有适用场景。事件驱动适合「等输入」(按钮/网络/UI)；轮询适合「定时检查」(每分钟读传感器)。混着用最常见。"
+  why="发声盒的按钮 = 事件（不知道啥时候按）。温度计每分钟读一次 = 轮询（你掌控节奏）。把传感器轮询硬改成事件 = 复杂化；把按钮硬改成轮询 = 浪费 CPU。选错范式 = 项目变难。"
+/>
+
+### `pause()` 在做什么
+
+```python
+from signal import pause
+pause()
+```
+
+这一行让程序"永远暂停在这里"。背后实际是：
+
+1. Python 进程进入 `pause()` 系统调用
+2. 操作系统挂起进程（不占 CPU）
+3. 硬件中断（按钮按下）触发 → OS 唤醒进程 → 进程跑回调函数 → 函数返回 → 进程再进入暂停
+
+**没有 `pause()` 程序立刻退出**，事件回调来不及触发。这是事件驱动代码的"心脏"。
+
+<PredictThenReveal
+  question="我代码末尾没写 pause()，只有 button.when_pressed = on_press。然后 python3 main.py 跑起来 —— 按按钮会触发 on_press 吗？"
+  hint="想想'程序退出'跟'事件等待'的关系。"
+  answer="不会。脚本跑到末尾立刻退出，进程结束，所有事件订阅都没了。即使你飞快地按按钮 —— 中断到达时进程已经不存在。pause() 或者 while True: time.sleep(1) 这种'让进程活下去'的语句是事件驱动的必需品。"
+/>
+
+### Lambda：一行函数
+
+```python
+# 等价的两种写法
+
+# 写法 1：显式 def
+def on_press():
+    print("按了")
+button.when_pressed = on_press
+
+# 写法 2：lambda（匿名函数）
+button.when_pressed = lambda: print("按了")
+```
+
+`lambda:` = "我要定义一个没名字的函数"。后面跟函数体。Python 里 lambda 限制：只能一个表达式（不能多行）。简单回调用 lambda 干净。
+
+### 完整发声盒骨架（N19 之前的样子）
+
+```python
+from gpiozero import Button
+from signal import pause
+from pathlib import Path
+import random
+
+# 配置
+BUTTON_PIN = 17
+SOUND_DIR = Path(__file__).parent / "sounds"
+SOUNDS = list(SOUND_DIR.glob("*.mp3"))
+
+def play_random_sound():
+    """按下按钮时调用 — N19 会把 print 替换成真播放"""
+    chosen = random.choice(SOUNDS)
+    print(f"播放：{chosen.name}")
+    # 这里 N19 会加 pygame.mixer.music.load(chosen).play()
+
+def setup():
+    button = Button(BUTTON_PIN, bounce_time=0.1)
+    button.when_pressed = play_random_sound
+    return button
+
+if __name__ == "__main__":
+    button = setup()
+    print(f"发声盒就绪 — {len(SOUNDS)} 个音频")
+    pause()                  # 永远响应按钮，直到 Ctrl+C
+```
+
+**整个发声盒不到 20 行，因为事件驱动让你只写"业务逻辑"，所有"等待 + 调度"由 gpiozero + OS 处理。**
+
+<ConceptCheck
+  question="发声盒升级：3 个按钮分别播放不同主题的音频（动物声/儿歌/数字）。怎么写最自然？"
+  options={[
+    {
+      text: "while True 里依次检查 3 个按钮",
+      correct: false,
+      why: "轮询多按钮 = 代码丑 + 短按可能漏 + 多按钮按下顺序难处理。",
+    },
+    {
+      text: "3 个按钮各自 when_pressed 注册不同回调",
+      correct: true,
+      why: "事件驱动天生支持多源。每个按钮独立的回调，互不干扰。代码自然简洁 — 3 个按钮 = 3 行 button_X.when_pressed = play_X。",
+    },
+    {
+      text: "开 3 个 Python 进程",
+      correct: false,
+      why: "完全多余 — 一个进程就能管多按钮。多进程在嵌入式是浪费资源。",
+    },
+    {
+      text: "做不到",
+      correct: false,
+      why: "事件驱动正是为这种场景设计的。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**真上手对比** 两种范式（要 N16 + N17 电路）：
+
+### 实验 1：轮询版按钮控 LED
+
+```python
+# poll.py
+from gpiozero import LED, Button
+import time
+
+led = LED(17)
+button = Button(18)
+
+while True:
+    led.value = button.is_pressed   # 0/1 直接互转
+    time.sleep(0.05)
+```
+
+跑起来：按按钮 LED 亮，松开灭。**但 Pi CPU 用 top 看应该有几个百分点**。
+
+### 实验 2：事件版（同样效果）
+
+```python
+# event.py
+from gpiozero import LED, Button
+from signal import pause
+
+led = LED(17)
+button = Button(18)
+
+button.when_pressed = led.on
+button.when_released = led.off
+
+pause()
+```
+
+跑起来：按按钮 LED 亮，松开灭。**Pi CPU 几乎 0%**。
+
+**两段代码同样效果，CPU 占用差几十倍。** 这就是事件驱动的威力。
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'pause() 干什么？',
+      options: [
+        '暂停 1 秒',
+        '让进程永远阻塞，等待信号或事件',
+        '退出程序',
+        '清屏',
+      ],
+      correct: 1,
+      explain: 'signal.pause() 让进程进入等待状态（不占 CPU），直到收到任何信号才返回。事件回调机制需要它防止主线程退出。',
+    },
+    {
+      q: 'lambda: print("hi") 是什么？',
+      options: [
+        '一个变量',
+        '匿名函数 — 等同于 def f(): print("hi") 然后用 f',
+        '错误语法',
+        '注释',
+      ],
+      correct: 1,
+      explain: 'lambda 是 Python 的「内联函数」语法。lambda 后面跟可选参数，冒号后是表达式。常用于回调赋值。',
+    },
+    {
+      q: '多按钮场景，事件驱动比轮询好在哪？',
+      options: [
+        '没区别',
+        '事件驱动每个按钮独立回调互不干扰；轮询要在循环里依次检查容易遗漏',
+        '事件驱动更便宜',
+        '轮询更专业',
+      ],
+      correct: 1,
+      explain: '轮询多按钮容易因为时序问题漏检（A 在轮询 B 那一刻被按到），事件驱动由硬件中断驱动每个按钮独立，天生支持并发。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="轮询 vs 事件驱动"
+  points={[
+    "轮询 = 主动查（按部就班，掌控节奏）→ 适合定时任务",
+    "事件 = 被动响应（注册回调 + pause）→ 适合等输入",
+    "lambda: ... 是一行匿名函数，回调常用",
+    "pause() 让进程活着，事件循环才工作",
+    "发声盒选事件驱动 = 按钮场景的最优范式",
+    "两种范式不是对立 — 混着用最常见",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<FeynmanPrompt
+  prompt="给完全不懂代码的朋友解释：什么是「事件驱动」？跟「轮询」有啥区别？为什么发声盒选事件驱动？（60 秒）"
+  scoringRubric={[
+    '✓ 用了门铃 vs 开门看 / 等电话 vs 反复打 等类比',
+    '✓ 解释了"CPU 占用"差异',
+    '✗ 没说事件驱动'更好' — 而是说'更适合等待输入'',
+    '✓ 给了发声盒具体场景的判断',
+  ]}
+  followUps={[
+    {
+      question: '事件驱动会不会漏掉同时按多个按钮？',
+      hint: '考点：硬件中断 + 软件队列，几乎不会漏',
+    },
+    {
+      question: 'pause() 不响应键盘 Ctrl+C 吗？',
+      hint: '考点：pause() 会被 SIGINT 中断，Ctrl+C 能退出',
+    },
+  ]}
+/>
+
+## 完成后
+
+✅ Feynman 通过 + 两个版本实验对比 → 解锁 N25 / N27（发声盒主程序）。
+
+按 learning_path 下一节是 <CrossLink to="n19" relation="下一节">pygame.mixer 播音频</CrossLink> —— 终于到发声盒最关键能力：**让 Pi 真的响**。
+
+---
+
+**JARVIS Note**:
+> *"Sir, '事件驱动'是 Web 服务器、移动 App、嵌入式系统的共同基石。Node.js / React / iOS / Android 全部建立在它上面。今天你在小小的发声盒上学会的这个模式，**未来任何编程项目都用得上**。"*

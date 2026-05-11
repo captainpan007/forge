@@ -1,0 +1,267 @@
+---
+id: n16
+slug: gpiozero-first
+title: gpiozero 第一次
+phase: 3
+phase_name: 软件能力
+project: soundbox
+order: 16
+duration: 25
+difficulty: 3
+depends_on: [n05, n12, n13, n14]
+unlocks: [n17, n40]
+tags: [python, gpio, hardware, hands-on, milestone]
+status: ready
+authors:
+  - alexpan
+last_updated: 2026-05-11
+---
+
+<HandsOnHook scene="第一次代码控硬件">
+
+前面 15 节全是铺垫。**这一节是发声盒项目第一次出"成就"**：
+
+你写 3 行 Python，按回车 —— **LED 真的闪起来了**。
+
+那一瞬间 Pi 不再是块电路板、Python 不再是抽象语法 —— 你**亲手用代码控制了物理世界**。这是嵌入式工程师的"圣杯"时刻，每个人都记得自己第一次。
+
+25 分钟后，你也有。
+
+</HandsOnHook>
+
+## Why · 你为什么要学这一节
+
+发声盒的核心：**Python → GPIO → 硬件**。这一节就是这条链路第一次贯通：
+
+- 接一个 LED + 限流电阻到面包板
+- 写 3 行 Python 用 `gpiozero.LED` 控制它
+- LED 真闪
+
+学会这个，你之后控按钮、电机、舵机、喇叭、LED 阵列 —— 全部同一个套路。
+
+<Callout type="tip" icon="🎯">
+  **学完这一节你能做到：** 你能独立完成"看到一个新元件 → 接电路 → 写 5 行 Python 让它动"。
+</Callout>
+
+## What · 4 步点亮第一个 LED
+
+### 准备清单
+
+- ✅ Pi 4 + SSH 可登（N10 完成的）
+- ✅ 1 个红色 LED
+- ✅ 1 个 220Ω 电阻（套件里色环：红红棕金）
+- ✅ 2 根杜邦线（公-公）
+- ✅ 面包板
+- ✅ <CrossLink to="n04" relation="还记得">N04 算的 R = 130Ω 最小</CrossLink>，220Ω 更保险
+
+⚠ **Pi 通电前先断电插线 —— 通电状态下插拔很可能烧针脚。**
+
+<AssemblyStepper
+  intro="N16 · 第一个 LED 完整接线 + 代码"
+  steps={[
+    {
+      title: "在面包板上插 LED + 电阻",
+      visual: "/diagrams/cg-step-1.svg",
+      description: <>面包板放桌上，<strong>找一个空 5 孔组（如 a5-e5）</strong>。<br/>把 LED <HighlightedTerm color="red">长腿（+）</HighlightedTerm>插在 b5，<HighlightedTerm color="black">短腿（-）</HighlightedTerm>插在 b6。<br/>电阻一端插 a5（跟 LED 长腿同组），另一端插 a10（隔几个组）。<br/><strong>关键：长短腿不能反，反了 LED 不亮也不烧。</strong></>,
+      newComponent: "LED + 限流电阻"
+    },
+    {
+      title: "把面包板连到 Pi GPIO 17",
+      visual: "/diagrams/cg-step-2.svg",
+      description: <>红色杜邦线一头插<HighlightedTerm color="orange">面包板 a10</HighlightedTerm>（电阻另一端），<br/>另一头插 <HighlightedTerm color="green">Pi 物理 11 号针脚 (BCM 17 = GPIO 17)</HighlightedTerm>。<br/>查 <CrossLink to="n06" relation="还记得">N06 的引脚图</CrossLink> — 别接错。</>,
+      newComponent: "红色信号线 (GPIO 17)"
+    },
+    {
+      title: "把面包板 GND 连到 Pi GND",
+      visual: "/diagrams/cg-step-3.svg",
+      description: <>黑色杜邦线一头插<HighlightedTerm color="black">面包板 b6</HighlightedTerm>（LED 短腿一组），<br/>另一头插 <HighlightedTerm color="gray">Pi 物理 6 号（GND）</HighlightedTerm>。<br/><CrossLink to="n04" relation="还记得">GND 必须共连</CrossLink> — 这一步是关键。</>,
+      newComponent: "黑色 GND 线"
+    },
+    {
+      title: "通电 + SSH + 写代码",
+      visual: "/diagrams/cg-step-4.svg",
+      description: <>给 Pi 通电。SSH 进去：<code>ssh pi@raspberrypi.local</code><br/>敲 <code>nano blink.py</code> 新建文件，粘贴下面 4 行：<br/><br/><code>from gpiozero import LED</code><br/><code>led = LED(17)</code><br/><code>led.blink()</code><br/><code>input(&quot;按回车停止...&quot;)</code><br/><br/>Ctrl+O 保存，Ctrl+X 退出。然后 <code>python3 blink.py</code>。<br/><strong>LED 应该开始 1 秒一次的闪烁。</strong>📍 这就是你的第一个真硬件控制代码。</>,
+      newComponent: "blink.py — 3 行点亮 LED"
+    },
+  ]}
+/>
+
+### 代码逐行解释
+
+```python
+from gpiozero import LED       # 从 gpiozero 库导入 LED 类
+led = LED(17)                  # 创建一个 LED 对象，绑定 BCM 17
+led.blink()                    # 让它无限闪烁（默认 1 秒亮 1 秒灭）
+input("按回车停止...")          # 阻塞等待 — 没这一行程序立刻退出，LED 也停
+```
+
+**`gpiozero.LED(17)` 背后做了什么：**
+1. 告诉 Pi："把 BCM 17 配成 Output 模式"
+2. 创建一个 Python 对象，让你用 `.on()` / `.off()` / `.blink()` 操作它
+3. 程序退出时自动释放 GPIO（不会一直占用）
+
+### 进阶玩法（每个一行）
+
+```python
+led.on()                       # 一直亮
+led.off()                      # 灭
+led.blink(on_time=0.5, off_time=0.5)        # 半秒一次（更快）
+led.blink(on_time=2, off_time=0.5, n=3)     # 闪 3 次后停（n = 次数）
+led.toggle()                   # 翻转当前状态
+led.pulse()                    # 渐亮渐灭（需要 PWM 引脚 / GPIO 13/18 等）
+```
+
+<Misconception
+  myth="LED 不亮 = LED 坏了"
+  truth="LED 不亮 9 成是接线问题，1 成是代码问题，几乎不会是 LED 坏。"
+  why="LED 是世界上最便宜耐用的元件之一 — 不超流（电阻够大），它能亮 10 年。新手第一次接电路，'灯不亮'的真实原因排序：(1) LED 长短腿插反，(2) 电阻没串进电路，(3) GND 没连 Pi，(4) GPIO 编号错（接物理 17 = 3.3V 而不是 BCM 17 = 物理 11）。"
+/>
+
+### 排错 5 步
+
+LED 没亮？按顺序检查：
+
+1. **看代码跑没** —— python3 blink.py 后终端有"按回车停止..."提示吗？没就是代码错（如缩进 / 拼写）
+2. **LED 长短腿** —— 长腿（+）必须接电阻那侧，短腿接 GND
+3. **GPIO 编号** —— 代码 LED(17) = 物理 11 号针脚 ≠ 物理 17 号（重读 <CrossLink to="n06" relation="见">N06</CrossLink>）
+4. **GND 接了吗** —— 没 GND 整个电路不工作
+5. **电阻** —— 220Ω 不能省，没电阻 LED 几秒内烧
+
+<PredictThenReveal
+  question="我代码 led = LED(17)，python3 blink.py 报错 'gpiozero.exc.GPIOPinInUse'。怎么回事？"
+  hint="另一个进程在用这根 GPIO？还是没释放？"
+  answer="另一个 Python 进程占着 GPIO 17。可能你之前的 blink.py 没正常退出 (Ctrl+C 太用力强杀)，那个进程残留在系统里继续占用 GPIO。解决：sudo pkill -f blink.py 杀掉残留进程，或者重启 Pi (sudo reboot)。预防：代码里加 try/finally 或用 with LED(17) as led: 块结构，保证退出时自动释放。"
+/>
+
+### 不用真硬件先玩一下
+
+<Wokwi
+  project="304804747562680897"
+  title="Pi Pico LED blink（GPIO 概念相同）"
+  description="点 ▶ 看 LED 每秒闪。Pico 用 MicroPython，但逻辑跟 gpiozero 一模一样：选针脚 → on/off。"
+  height={500}
+/>
+
+<ConceptCheck
+  question="我写了 `from gpiozero import LED; led = LED(17); led.on()` —— LED 一直亮。但我接的 LED 长腿在 GND 那侧、短腿在 GPIO 17 那侧。会发生什么？"
+  options={[
+    {
+      text: "LED 正常亮（Pi 灵活，方向不重要）",
+      correct: false,
+      why: "LED 是有方向的元件（diode = 二极管 = '只让电流单向流'）。",
+    },
+    {
+      text: "LED 不亮（反向偏置，电流不通）",
+      correct: true,
+      why: "对。LED 反接时，正向电压不足以让它导通 → 没电流 → 不亮。但不会烧 — 这是 LED 反接的'安全'特性。把腿调过来就好。",
+    },
+    {
+      text: "LED 烧掉",
+      correct: false,
+      why: "反接不烧 LED（不超过 5V 反向电压，Pi GPIO 3.3V 远低于）。但反接 + 没串电阻 + 高电压可能烧。",
+    },
+    {
+      text: "Pi 报错",
+      correct: false,
+      why: "Pi 不知道你接没接 / 接对接错 — 它只管推电压。",
+    },
+  ]}
+/>
+
+## Try · 动手验证你真懂了
+
+**真接电路 + 真跑代码** 是这一节的核心。完成下面 4 个动作 = 满分：
+
+1. ✅ 按 AssemblyStepper 4 步接好 LED 电路
+2. ✅ SSH 进 Pi 写 blink.py
+3. ✅ python3 blink.py 看 LED 真闪
+4. ✅ 改 `blink(on_time=2, off_time=0.5, n=5)` 看变化
+
+<TryThis
+  type="quiz"
+  questions={[
+    {
+      q: 'led = LED(17) 里的 17 指什么？',
+      options: [
+        '17 号物理针脚',
+        'BCM 17 编号 = 物理针脚 11 号',
+        '亮度等级 17',
+        '随便一个数',
+      ],
+      correct: 1,
+      explain: 'gpiozero 默认用 BCM 编号。LED(17) 对应物理 11 号针脚。查 N06 引脚图核对。',
+    },
+    {
+      q: 'led.blink() 的默认行为是？',
+      options: [
+        '闪一次就停',
+        '无限循环 1 秒亮 1 秒灭',
+        'LED 慢慢渐亮渐灭',
+        '报错',
+      ],
+      correct: 1,
+      explain: '.blink() 默认 on_time=1, off_time=1, n=None（None = 无限）。所以不传参数就是 1Hz 无限闪烁。',
+    },
+    {
+      q: '代码跑完 LED 立刻熄灭 — 为啥？',
+      options: [
+        'gpiozero 自动关',
+        '程序退出时 Python 析构 LED 对象，gpiozero 把 GPIO 配回安全态',
+        'LED 没电了',
+        'Pi 重启了',
+      ],
+      correct: 1,
+      explain: 'gpiozero 设计上：进程退出时自动释放所有 GPIO 资源（包括把输出针脚拉回 LOW）。这就是为什么代码末尾要加 input() 让进程不退出 —— 你才能看到 LED 持续闪。',
+    },
+  ]}
+/>
+
+<MentalModel
+  name="第一个 LED 控制的 4 件事"
+  points={[
+    "硬件：LED + 220Ω 电阻 + 杜邦线 + 面包板",
+    "接线：GPIO 17 → 电阻 → LED 长腿，LED 短腿 → GND（极性必对）",
+    "代码：from gpiozero import LED → led = LED(17) → led.blink()",
+    "input() 阻塞，让程序不秒退",
+    "GPIO 在用时报错 = 上次没干净退出 → sudo pkill 或 reboot",
+  ]}
+/>
+
+## Feynman · 教给你 26 个月的儿子
+
+<Callout type="warning" icon="🔒">
+  通过 Feynman + 真做一次 LED 闪 → 解锁 N17（按钮）+ N40。**真硬件成功是这一节的强制条件。**
+</Callout>
+
+<FeynmanPrompt
+  prompt="带你儿子看你刚弄好的 LED 闪烁电路。给他讲：为什么这个小灯泡会闪？你是怎么让它闪的？爸爸的代码做了什么？（60 秒）"
+  scoringRubric={[
+    '✓ 用儿童能懂的话（不超过 5 个抽象词）',
+    '✓ 提到"Pi 是大脑、LED 是身体的一部分"这类身体类比',
+    '✓ 解释了代码里 .blink() 的意思',
+    '✗ 没说"魔法"，要说"指令"',
+  ]}
+  followUps={[
+    {
+      question: '那我能让 LED 跟着我说话的节奏闪吗？',
+      hint: '考点：扩展思路 — 麦克风输入 + PWM 控亮度 (v0.5 进阶)',
+    },
+    {
+      question: '我能不能同时控 10 个 LED？',
+      hint: '考点：Pi GPIO 数量 + 多 LED 并联限制（电流总和 50mA）',
+    },
+  ]}
+/>
+
+## 完成后
+
+🎉 **你刚完成了嵌入式工程师的成人礼。**
+
+✅ Feynman 通过 + LED 真闪 → 解锁 <CrossLink to="n17" relation="下一节">gpiozero 的 Button 类</CrossLink> + N40。
+
+下一节 N17 我们读按钮 —— 反过来：**外面给 Pi 一个信号**。从"Pi 推动外界"过渡到"Pi 监听外界"。
+
+---
+
+**JARVIS Note**:
+> *"Sir, 我观察工程师 5 年，发现一件事：第一次让 LED 闪起来的人，10 个有 8 个会进入嵌入式领域。物理世界对软件指令的响应是有'电流'的成就感 — 跟你在屏幕上 console.log 完全是两个量级。今晚好好享受这一刻。"*
